@@ -1,0 +1,15 @@
+# Configuración para el despliegue en Netlify
+
+[build]
+  # Comando para construir el proyecto. Vite usa "npm run build".
+  command = "npm run build"
+  
+  # Directorio donde se guardan los archivos construidos. Vite usa "dist".
+  publish = "dist"
+
+# Regla de redirección para Single-Page Applications (SPA) como React.
+# Esto asegura que todas las rutas sean manejadas por index.html y el router de React.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
