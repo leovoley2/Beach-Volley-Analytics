@@ -908,6 +908,12 @@ td {
     border-color: var(--c-dn);
 }
 
+.chip-eficacia {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--accent-blue);
+    border-color: var(--accent-blue);
+}
+
 /* Charts grid: stacked bar (2/3) + donut (1/3) */
 .player-charts-grid {
     display: grid;

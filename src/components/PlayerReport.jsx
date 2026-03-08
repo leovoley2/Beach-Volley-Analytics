@@ -129,10 +129,13 @@ function PlayerReport({ playerName, playerStats, playerColor }) {
         },
     };
 
-    // Efficiency: (# + +) vs (- + =) / total
-    const totalPos = (playerStats.skills['_total_dp'] || 0);
+    // Eficiencia general: ((# + +) - (- + =)) × 100 / total
     const overallEff = totalActions > 0
         ? (((totalsByOutcome[0] + totalsByOutcome[1]) - (totalsByOutcome[3] + totalsByOutcome[4])) / totalActions * 100).toFixed(0)
+        : 0;
+    // Eficacia general: # × 100 / total
+    const overallEficacia = totalActions > 0
+        ? ((totalsByOutcome[0] / totalActions) * 100).toFixed(0)
         : 0;
 
     return (
@@ -143,6 +146,9 @@ function PlayerReport({ playerName, playerStats, playerColor }) {
                 <h3>{playerName}</h3>
                 <div className="player-summary-chips">
                     <span className="chip chip-total">{totalActions} acciones</span>
+                    <span className="chip chip-eficacia">
+                        ⚡ {overallEficacia}% eficacia
+                    </span>
                     <span className={`chip ${overallEff >= 0 ? 'chip-pos' : 'chip-neg'}`}>
                         {overallEff >= 0 ? '+' : ''}{overallEff}% eficiencia
                     </span>
@@ -180,7 +186,8 @@ function PlayerReport({ playerName, playerStats, playerColor }) {
                             <th title="Overpass">/</th>
                             <th title="Negativo">-</th>
                             <th title="Doble Negativo">=</th>
-                            <th title="Eficiencia">%Ef.</th>
+                            <th title="Eficacia = # × 100 / Total">%Eficacia</th>
+                            <th title="Eficiencia = ((# + +) − (- + =)) × 100 / Total">%Eficiencia</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -191,6 +198,9 @@ function PlayerReport({ playerName, playerStats, playerColor }) {
                             const ovp = s['Overpass'] || 0;
                             const neg = s['Negativo'] || 0;
                             const dn = s['Doble Negativo'] || 0;
+                            // Eficacia: # × 100 / total
+                            const eficacia = ((dp / s.total) * 100).toFixed(0);
+                            // Eficiencia: ((# + +) − (- + =)) × 100 / total
                             const eff = (((dp + pos) - (neg + dn)) / s.total * 100).toFixed(0);
                             return (
                                 <tr key={skill}>
@@ -201,6 +211,7 @@ function PlayerReport({ playerName, playerStats, playerColor }) {
                                     <td className="cell-ovp">{ovp}</td>
                                     <td className="cell-neg">{neg}</td>
                                     <td className="cell-dn">{dn}</td>
+                                    <td><strong style={{ color: eficacia > 0 ? '#22c55e' : '#7a8899' }}>{eficacia}%</strong></td>
                                     <td><strong style={{ color: eff >= 0 ? '#22c55e' : '#dc2626' }}>{eff}%</strong></td>
                                 </tr>
                             );
