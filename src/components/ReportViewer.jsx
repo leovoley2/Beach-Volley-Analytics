@@ -5,13 +5,126 @@ import html2canvas from 'html2canvas';
 import PlayerReport from './PlayerReport';
 
 const SKILLS = ['Saque', 'Recepción', 'Armado', 'Ataque Contundente', 'Ataque Coloque', 'Bloqueo', 'Defensa'];
-const OUTCOMES = ['Doble Positivo', 'Positivo', 'Overpass', 'Negativo', 'Doble Negativo'];
 const SVG_WIDTH = 500, SVG_HEIGHT = 300, COURT_X_PADDING = 50, COURT_Y_PADDING = 50;
 const COURT_WIDTH = SVG_WIDTH - 2 * COURT_X_PADDING, COURT_HEIGHT = SVG_HEIGHT - 2 * COURT_Y_PADDING;
+
+// Palette of distinct player colors (start marker)
+const PLAYER_COLORS = [
+    '#f97316', // orange
+    '#3b82f6', // blue
+    '#a855f7', // purple
+    '#10b981', // emerald
+    '#f43f5e', // rose
+    '#06b6d4', // cyan
+    '#eab308', // yellow
+    '#ec4899', // pink
+];
+
+function CourtSVG({ actions, playerColors, playerIdentifiers }) {
+    const getOutcomeClass = (o) =>
+        o === 'Doble Positivo' ? 'marker-positivo' : o === 'Doble Negativo' ? 'marker-negativo' : 'marker-neutro';
+
+    const attackActions = actions.filter(a => a.x != null);
+
+    return (
+        <svg viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`} className="volleyball-court" style={{ cursor: 'default' }}>
+            {/* Background */}
+            <rect x="0" y="0" width={SVG_WIDTH} height={SVG_HEIGHT} fill="#fdf6e3" />
+            {/* Court surface */}
+            <rect x={COURT_X_PADDING} y={COURT_Y_PADDING} width={COURT_WIDTH} height={COURT_HEIGHT} fill="#ffe8a1" stroke="#6d6d72" strokeWidth="1" />
+            {/* Net */}
+            <line x1={SVG_WIDTH / 2} y1={COURT_Y_PADDING} x2={SVG_WIDTH / 2} y2={COURT_Y_PADDING + COURT_HEIGHT} stroke="#6d6d72" strokeWidth="2" strokeDasharray="4" />
+
+            {attackActions.map((action, i) => {
+                const x2 = action.x * SVG_WIDTH;
+                const y2 = action.y * SVG_HEIGHT;
+                const playerColor = playerColors[action.playerId] || '#888';
+
+                if (action.startX == null) {
+                    // Single-point shot (no start marker)
+                    return (
+                        <g key={i} transform={`translate(${x2}, ${y2})`}>
+                            <circle r="8" className={`court-marker ${getOutcomeClass(action.outcome)}`} />
+                            <text textAnchor="middle" dy=".3em" style={{ fontSize: '8px', fill: 'white', fontWeight: 'bold' }}>
+                                {playerIdentifiers[action.playerId]}
+                            </text>
+                        </g>
+                    );
+                }
+
+                const x1 = action.startX * SVG_WIDTH;
+                const y1 = action.startY * SVG_HEIGHT;
+                const isColoque = action.skill === 'Ataque Coloque';
+                const isContundente = action.skill === 'Ataque Contundente';
+                const cx = (x1 + x2) / 2;
+                const cy = (y1 + y2) / 2 - 55;
+
+                return (
+                    <g key={i}>
+                        {/* Start marker - player color */}
+                        <circle cx={x1} cy={y1} r="7" fill={playerColor} stroke="white" strokeWidth="1.5" opacity="0.95" />
+                        <text x={x1} y={y1} textAnchor="middle" dy=".35em" style={{ fontSize: '7px', fill: 'white', fontWeight: 'bold' }}>
+                            {playerIdentifiers[action.playerId]}
+                        </text>
+
+                        {/* Trajectory line */}
+                        {isColoque ? (
+                            <path
+                                d={`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`}
+                                fill="none" stroke="#9b59b6" strokeWidth="1.8"
+                                strokeDasharray="4 3" strokeLinecap="round" opacity="0.75"
+                            />
+                        ) : isContundente ? (
+                            <line x1={x1} y1={y1} x2={x2} y2={y2}
+                                stroke="#e74c3c" strokeWidth="2.8" strokeLinecap="round" opacity="0.8" />
+                        ) : (
+                            <line x1={x1} y1={y1} x2={x2} y2={y2}
+                                stroke="rgba(0,0,0,0.35)" strokeWidth="1.5" strokeDasharray="5 3" />
+                        )}
+
+                        {/* End marker — outcome color */}
+                        <g transform={`translate(${x2}, ${y2})`}>
+                            <circle r="8" className={`court-marker ${getOutcomeClass(action.outcome)}`} />
+                            <text textAnchor="middle" dy=".3em" style={{ fontSize: '8px', fill: 'white', fontWeight: 'bold' }}>
+                                {playerIdentifiers[action.playerId]}
+                            </text>
+                        </g>
+                    </g>
+                );
+            })}
+        </svg>
+    );
+}
+
+// Compute player stats from a filtered action list
+function computeStats(selectedMatch, filteredActions) {
+    const playerStats = {};
+    const allPlayers = [
+        ...(selectedMatch.ownPlayers || []),
+        ...(selectedMatch.opponentPlayers || []),
+    ];
+    allPlayers.forEach(player => {
+        playerStats[player.id] = { name: player.name, skills: {} };
+        SKILLS.forEach(skill => {
+            playerStats[player.id].skills[skill] = {
+                total: 0, 'Doble Positivo': 0, 'Positivo': 0, 'Overpass': 0, 'Negativo': 0, 'Doble Negativo': 0,
+            };
+        });
+    });
+    filteredActions.forEach(action => {
+        if (action && playerStats[action.playerId] && playerStats[action.playerId].skills[action.skill]) {
+            const s = playerStats[action.playerId].skills[action.skill];
+            s.total++;
+            if (s[action.outcome] !== undefined) s[action.outcome]++;
+        }
+    });
+    return playerStats;
+}
 
 function ReportViewer({ onGoToTracker }) {
     const { matches, setCurrentMatch } = useMatches();
     const [selectedMatchId, setSelectedMatchId] = useState('');
+    const [selectedSet, setSelectedSet] = useState(null); // null = Todos los Sets
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
     const reportContentRef = useRef(null);
 
@@ -19,47 +132,48 @@ function ReportViewer({ onGoToTracker }) {
         return matches.find(m => m.id === selectedMatchId) || null;
     }, [selectedMatchId, matches]);
 
+    // Reset set filter when match changes
+    const handleMatchChange = (e) => {
+        setSelectedMatchId(e.target.value);
+        setSelectedSet(null);
+    };
+
+    // Assign a unique color per player
+    const playerColors = useMemo(() => {
+        if (!selectedMatch) return {};
+        const colors = {};
+        const allPlayers = [
+            ...(selectedMatch.ownPlayers || []),
+            ...(selectedMatch.opponentPlayers || []),
+        ];
+        allPlayers.forEach((p, i) => {
+            colors[p.id] = PLAYER_COLORS[i % PLAYER_COLORS.length];
+        });
+        return colors;
+    }, [selectedMatch]);
+
     const playerIdentifiers = useMemo(() => {
         if (!selectedMatch) return {};
         const identifiers = {};
-        (selectedMatch.ownPlayers || []).forEach((p, i) => {
-            identifiers[p.id] = `J${i + 1}`;
-        });
-        (selectedMatch.opponentPlayers || []).forEach((p, i) => {
-            identifiers[p.id] = `R${i + 1}`;
-        });
+        (selectedMatch.ownPlayers || []).forEach((p, i) => { identifiers[p.id] = `J${i + 1}`; });
+        (selectedMatch.opponentPlayers || []).forEach((p, i) => { identifiers[p.id] = `R${i + 1}`; });
         return identifiers;
     }, [selectedMatch]);
 
+    // Actions filtered by selected set
+    const filteredActions = useMemo(() => {
+        if (!selectedMatch) return [];
+        const all = selectedMatch.actions || [];
+        if (selectedSet === null) return all;
+        return all.filter(a => a.setIndex === selectedSet);
+    }, [selectedMatch, selectedSet]);
+
+    // Stats derived from filtered actions
     const stats = useMemo(() => {
         if (!selectedMatch) return null;
-        try {
-            const playerStats = {};
-            const allPlayers = [
-                ...(selectedMatch.ownPlayers || []),
-                ...(selectedMatch.opponentPlayers || [])
-            ];
-
-            allPlayers.forEach(player => {
-                playerStats[player.id] = { name: player.name, skills: {} };
-                SKILLS.forEach(skill => {
-                    playerStats[player.id].skills[skill] = { total: 0, 'Doble Positivo': 0, 'Positivo': 0, 'Overpass': 0, 'Negativo': 0, 'Doble Negativo': 0 };
-                });
-            });
-
-            (selectedMatch.actions || []).forEach(action => {
-                if (action && playerStats[action.playerId] && playerStats[action.playerId].skills[action.skill]) {
-                    const skillStats = playerStats[action.playerId].skills[action.skill];
-                    skillStats.total++;
-                    if (skillStats[action.outcome] !== undefined) skillStats[action.outcome]++;
-                }
-            });
-            return playerStats;
-        } catch (error) {
-            console.error("Error calculating stats:", error);
-            return null;
-        }
-    }, [selectedMatch]);
+        try { return computeStats(selectedMatch, filteredActions); }
+        catch (err) { console.error(err); return null; }
+    }, [selectedMatch, filteredActions]);
 
     const generatePdf = async () => {
         const reportElement = reportContentRef.current;
@@ -76,20 +190,20 @@ function ReportViewer({ onGoToTracker }) {
         setIsGeneratingPdf(false);
     };
 
-    const getOutcomeClass = (o) => (o === 'Doble Positivo' ? 'marker-positivo' : o === 'Doble Negativo' ? 'marker-negativo' : 'marker-neutro');
-
     const handleGoToMatch = () => {
         if (!selectedMatch) return;
         setCurrentMatch(selectedMatch);
         onGoToTracker();
     };
 
+    const numSets = selectedMatch ? selectedMatch.sets.length : 0;
+
     return (
         <div className="card">
             <h2>Visor de Informes</h2>
             <div className="form-group">
                 <label>Selecciona un partido para analizar:</label>
-                <select onChange={(e) => setSelectedMatchId(e.target.value)} value={selectedMatchId}>
+                <select onChange={handleMatchChange} value={selectedMatchId}>
                     <option value="">-- Elige un partido --</option>
                     {matches.map(match => (
                         <option key={match.id} value={match.id}>
@@ -101,6 +215,7 @@ function ReportViewer({ onGoToTracker }) {
 
             {selectedMatch && stats && (
                 <div className="report-content">
+                    {/* Action bar */}
                     <div className="report-actions">
                         <button onClick={handleGoToMatch} className="btn-go-match" title="Volver al partido para corregir acciones">
                             ✏️ Ir al Partido
@@ -109,13 +224,41 @@ function ReportViewer({ onGoToTracker }) {
                             {isGeneratingPdf ? 'Generando PDF...' : '📄 Descargar PDF'}
                         </button>
                     </div>
+
+                    {/* Set filter tabs */}
+                    <div className="set-filter-tabs">
+                        <button
+                            className={selectedSet === null ? 'set-tab active' : 'set-tab'}
+                            onClick={() => setSelectedSet(null)}
+                        >
+                            Todos los Sets
+                        </button>
+                        {selectedMatch.sets.map((_, i) => (
+                            <button
+                                key={i}
+                                className={selectedSet === i ? 'set-tab active' : 'set-tab'}
+                                onClick={() => setSelectedSet(i)}
+                            >
+                                Set {i + 1}
+                                <span className="set-tab-score">
+                                    {selectedMatch.sets[i].own}–{selectedMatch.sets[i].opponent}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+
                     <div ref={reportContentRef} className="pdf-container">
+                        {/* Header */}
                         <div className="pdf-header">
                             <h1>Informe de Partido</h1>
                             <h2>{`${selectedMatch.ownTeamName} vs ${selectedMatch.opponentTeamName}`}</h2>
-                            <p>{`Resultado Final (Sets): ${selectedMatch.score.own} - ${selectedMatch.score.opponent} | Fecha: ${selectedMatch.date}`}</p>
+                            <p>
+                                {`Resultado Final: ${selectedMatch.score.own}–${selectedMatch.score.opponent} sets | Fecha: ${selectedMatch.date}`}
+                                {selectedSet !== null && <strong>{` | Mostrando: Set ${selectedSet + 1}`}</strong>}
+                            </p>
                         </div>
 
+                        {/* Sets summary table */}
                         <div className="sets-summary">
                             <h4>Resumen por Sets</h4>
                             <table className="compact-table">
@@ -124,129 +267,117 @@ function ReportViewer({ onGoToTracker }) {
                                         <th>Set</th>
                                         <th>{selectedMatch.ownTeamName}</th>
                                         <th>{selectedMatch.opponentTeamName}</th>
+                                        <th>Acciones (filtradas)</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {selectedMatch.sets.map((set, index) => (
-                                        <tr key={index}>
-                                            <td>{index + 1}</td>
-                                            <td>{set.own}</td>
-                                            <td>{set.opponent}</td>
-                                        </tr>
-                                    ))}
+                                    {selectedMatch.sets.map((set, index) => {
+                                        const setActions = (selectedMatch.actions || []).filter(a => a.setIndex === index);
+                                        const isActive = selectedSet === index;
+                                        return (
+                                            <tr
+                                                key={index}
+                                                style={{ cursor: 'pointer', background: isActive ? 'rgba(249,115,22,0.08)' : undefined }}
+                                                onClick={() => setSelectedSet(isActive ? null : index)}
+                                                title={`Clic para filtrar por Set ${index + 1}`}
+                                            >
+                                                <td><strong>Set {index + 1}</strong></td>
+                                                <td style={{ color: set.own > set.opponent ? '#22c55e' : undefined }}>{set.own}</td>
+                                                <td style={{ color: set.opponent > set.own ? '#22c55e' : undefined }}>{set.opponent}</td>
+                                                <td style={{ color: '#7a8899' }}>{setActions.length}</td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
 
+                        {/* Court maps — one per set OR all together */}
                         <div className="court-section">
-                            <h4>Mapa de Acciones</h4>
-                            <div className="court-container">
-                                <svg viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`} className="volleyball-court">
-                                    <rect x="0" y="0" width={SVG_WIDTH} height={SVG_HEIGHT} fill="#fdf6e3" />
-                                    <rect x={COURT_X_PADDING} y={COURT_Y_PADDING} width={COURT_WIDTH} height={COURT_HEIGHT} fill="#ffe8a1" stroke="#6d6d72" strokeWidth="1" />
-                                    <line x1={SVG_WIDTH / 2} y1={COURT_Y_PADDING} x2={SVG_WIDTH / 2} y2={COURT_Y_PADDING + COURT_HEIGHT} stroke="#6d6d72" strokeWidth="2" strokeDasharray="4" />
-                                    {(selectedMatch.actions || []).filter(a => a.x != null).map((action, i) => (
-                                        <g key={i}>
-                                            {/* Trayectoria del ataque: diferenciada por tipo */}
-                                            {action.startX != null && (() => {
-                                                const x1 = action.startX * SVG_WIDTH;
-                                                const y1 = action.startY * SVG_HEIGHT;
-                                                const x2 = action.x * SVG_WIDTH;
-                                                const y2 = action.y * SVG_HEIGHT;
-                                                const isColoque = action.skill === 'Ataque Coloque';
-                                                const isContundente = action.skill === 'Ataque Contundente';
-                                                // Punto de control para el arco del coloque (mitad elevada)
-                                                const cx = (x1 + x2) / 2;
-                                                const cy = (y1 + y2) / 2 - 55;
+                            <h4>
+                                Mapa de Ataques
+                                {selectedSet !== null ? ` — Set ${selectedSet + 1}` : ' — Todos los Sets'}
+                            </h4>
 
-                                                return (
-                                                    <>
-                                                        {/* Marcador de INICIO (azul) */}
-                                                        <circle cx={x1} cy={y1} r="6" fill="#007aff" stroke="white" strokeWidth="1.5" opacity="0.9" />
+                            {selectedSet !== null ? (
+                                /* Single court for selected set */
+                                <div className="court-container">
+                                    <CourtSVG
+                                        actions={filteredActions}
+                                        playerColors={playerColors}
+                                        playerIdentifiers={playerIdentifiers}
+                                    />
+                                </div>
+                            ) : (
+                                /* All sets side by side */
+                                <div className="courts-grid">
+                                    {selectedMatch.sets.map((_, i) => {
+                                        const setActions = (selectedMatch.actions || []).filter(a => a.setIndex === i);
+                                        return (
+                                            <div key={i} className="court-set-wrap">
+                                                <p className="court-set-label">Set {i + 1} · {selectedMatch.sets[i].own}–{selectedMatch.sets[i].opponent}</p>
+                                                <div className="court-container">
+                                                    <CourtSVG
+                                                        actions={setActions}
+                                                        playerColors={playerColors}
+                                                        playerIdentifiers={playerIdentifiers}
+                                                    />
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
 
-                                                        {isColoque ? (
-                                                            /* Coloque → semi-arco curvo con línea punteada */
-                                                            <path
-                                                                d={`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`}
-                                                                fill="none"
-                                                                stroke="#9b59b6"
-                                                                strokeWidth="1.8"
-                                                                strokeDasharray="4 3"
-                                                                strokeLinecap="round"
-                                                                opacity="0.75"
-                                                            />
-                                                        ) : isContundente ? (
-                                                            /* Contundente → línea recta sólida y gruesa */
-                                                            <line
-                                                                x1={x1} y1={y1} x2={x2} y2={y2}
-                                                                stroke="#e74c3c"
-                                                                strokeWidth="2.8"
-                                                                strokeLinecap="round"
-                                                                opacity="0.8"
-                                                            />
-                                                        ) : (
-                                                            /* Otro → línea punteada genérica */
-                                                            <line
-                                                                x1={x1} y1={y1} x2={x2} y2={y2}
-                                                                stroke="rgba(0,0,0,0.35)"
-                                                                strokeWidth="1.5"
-                                                                strokeDasharray="5 3"
-                                                            />
-                                                        )}
-                                                    </>
-                                                );
-                                            })()}
-
-                                            {/* Marcador de FIN / impacto */}
-                                            <g transform={`translate(${action.x * SVG_WIDTH}, ${action.y * SVG_HEIGHT})`}>
-                                                <circle r="8" className={`court-marker ${getOutcomeClass(action.outcome)}`} />
-                                                <text textAnchor="middle" dy=".3em" style={{ fontSize: '8px', fill: 'white', fontWeight: 'bold' }}>
-                                                    {playerIdentifiers[action.playerId]}
-                                                </text>
-                                            </g>
-                                        </g>
-                                    ))}
-                                </svg>
-                            </div>
+                            {/* Legend: players + trajectory types */}
                             <div className="court-legend">
                                 <h4>Leyenda de Jugadores</h4>
-                                <ul style={{ listStyle: 'none', padding: 0, textAlign: 'center' }}>
-                                    {(selectedMatch.ownPlayers || []).map((p, i) => (
-                                        <li key={p.id} style={{ display: 'inline-block', marginRight: '1rem' }}>
-                                            <strong>J{i + 1}:</strong> {p.name}
-                                        </li>
+                                <div className="player-legend-list">
+                                    {[...(selectedMatch.ownPlayers || []), ...(selectedMatch.opponentPlayers || [])].map((p, i) => (
+                                        <span key={p.id} className="player-legend-item">
+                                            <span
+                                                className="player-legend-dot"
+                                                style={{ background: PLAYER_COLORS[i % PLAYER_COLORS.length] }}
+                                            />
+                                            {playerIdentifiers[p.id]} {p.name}
+                                        </span>
                                     ))}
-                                    {(selectedMatch.opponentPlayers || []).map((p, i) => (
-                                        <li key={p.id} style={{ display: 'inline-block', marginRight: '1rem' }}>
-                                            <strong>R{i + 1}:</strong> {p.name}
-                                        </li>
-                                    ))}
-                                </ul>
-                                {/* Leyenda de trayectorias */}
-                                <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: '#6d6d72', display: 'flex', justifyContent: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <svg width="32" height="12"><line x1="0" y1="6" x2="32" y2="6" stroke="#e74c3c" strokeWidth="2.5" strokeLinecap="round" /></svg>
-                                        Ataque Contundente
+                                </div>
+                                <div className="trajectory-legend">
+                                    <span className="traj-item">
+                                        <svg width="28" height="10"><line x1="0" y1="5" x2="28" y2="5" stroke="#e74c3c" strokeWidth="2.5" strokeLinecap="round" /></svg>
+                                        Contundente
                                     </span>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <svg width="32" height="16"><path d="M 0 12 Q 16 0 32 12" fill="none" stroke="#9b59b6" strokeWidth="1.8" strokeDasharray="4 3" strokeLinecap="round" /></svg>
-                                        Coloque / Tiro
+                                    <span className="traj-item">
+                                        <svg width="28" height="14"><path d="M 0 10 Q 14 0 28 10" fill="none" stroke="#9b59b6" strokeWidth="1.8" strokeDasharray="4 3" strokeLinecap="round" /></svg>
+                                        Coloque
                                     </span>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="#007aff" stroke="white" strokeWidth="1.5" /></svg>
-                                        Posición de inicio
+                                    <span className="traj-item">
+                                        <svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="#16a34a" /></svg>
+                                        Fin: Doble Positivo
+                                    </span>
+                                    <span className="traj-item">
+                                        <svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="#ca8a04" /></svg>
+                                        Fin: Neutro
+                                    </span>
+                                    <span className="traj-item">
+                                        <svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="#dc2626" /></svg>
+                                        Fin: Doble Negativo
                                     </span>
                                 </div>
                             </div>
                         </div>
+
+                        {/* Player reports */}
                         {Object.keys(stats)
-                            .filter(playerId => {
-                                // Solo mostrar jugadores con al menos una acción registrada
-                                const skills = stats[playerId].skills;
-                                return Object.values(skills).some(s => s.total > 0);
-                            })
+                            .filter(playerId => Object.values(stats[playerId].skills).some(s => s.total > 0))
                             .map(playerId => (
-                                <PlayerReport key={playerId} playerName={stats[playerId].name} playerStats={stats[playerId]} />
+                                <PlayerReport
+                                    key={playerId}
+                                    playerName={stats[playerId].name}
+                                    playerStats={stats[playerId]}
+                                    playerColor={playerColors[playerId]}
+                                />
                             ))
                         }
                     </div>

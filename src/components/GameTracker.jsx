@@ -129,6 +129,7 @@ function GameTracker() {
             playerId: activePlayerId,
             skill: selectedSkill === 'Ataque' ? `Ataque ${attackType}` : selectedSkill,
             outcome: selectedOutcome,
+            setIndex: currentSetIndex,            // ← qué set ocurrió la acción
             timestamp: new Date().toISOString(),
             // Posición de inicio del ataque
             ...(startPos && { startX: startPos.x, startY: startPos.y }),

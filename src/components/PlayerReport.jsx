@@ -23,7 +23,7 @@ const OUTCOME_COLORS = {
 const OUTCOME_KEYS = ['Doble Positivo', 'Positivo', 'Overpass', 'Negativo', 'Doble Negativo'];
 const OUTCOME_LABELS = ['# Doble Positivo', '+ Positivo', '/ Overpass', '- Negativo', '= Doble Negativo'];
 
-function PlayerReport({ playerName, playerStats }) {
+function PlayerReport({ playerName, playerStats, playerColor }) {
     if (!playerStats || !playerStats.skills) {
         return <div className="player-report error">Error: Faltan datos del jugador.</div>;
     }
@@ -139,6 +139,7 @@ function PlayerReport({ playerName, playerStats }) {
         <div className="player-report">
             {/* Player header */}
             <div className="player-report-header">
+                <span className="player-color-dot" style={{ background: playerColor || '#888' }} />
                 <h3>{playerName}</h3>
                 <div className="player-summary-chips">
                     <span className="chip chip-total">{totalActions} acciones</span>

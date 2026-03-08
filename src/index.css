@@ -977,3 +977,121 @@ td {
 .pdf-container td {
     color: #1c1c1e;
 }
+
+/* ---- Set Filter Tabs ---- */
+.set-filter-tabs {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+}
+
+.set-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 1rem;
+    border-radius: 50px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    background: var(--bg-card-alt);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--trans);
+}
+
+.set-tab:hover:not(:disabled) {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    transform: translateY(-1px);
+}
+
+.set-tab.active {
+    background: var(--accent-dim);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.set-tab-score {
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+}
+
+/* ---- Courts Grid (all sets side by side) ---- */
+.courts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.court-set-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.court-set-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+/* ---- Player Legend in Court Section ---- */
+.player-legend-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: center;
+    margin-bottom: 0.6rem;
+}
+
+.player-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.player-legend-dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 255, 255, 0.3);
+    flex-shrink: 0;
+}
+
+.trajectory-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.traj-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* ---- Player color dot in report header ---- */
+.player-color-dot {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    flex-shrink: 0;
+}
