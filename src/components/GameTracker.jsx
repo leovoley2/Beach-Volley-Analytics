@@ -130,7 +130,7 @@ function GameTracker() {
             }
         }
 
-        const finalSkill = selectedSkill === 'Ataque' ? `Ataque ${attackType}` : selectedSkill;
+        const finalSkill = skillToUse === 'Ataque' ? `Ataque ${attackType}` : skillToUse;
 
         // --- Determinar el Complejo (K1 / K2) ---
         // Recepción: siempre inicia K1
