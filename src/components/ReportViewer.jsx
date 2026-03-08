@@ -124,7 +124,9 @@ function computeStats(selectedMatch, filteredActions) {
 function ReportViewer({ onGoToTracker }) {
     const { matches, setCurrentMatch } = useMatches();
     const [selectedMatchId, setSelectedMatchId] = useState('');
-    const [selectedSet, setSelectedSet] = useState(null); // null = Todos los Sets
+    const [selectedSet, setSelectedSet] = useState(null);     // null = Todos los Sets
+    const [complexFilter, setComplexFilter] = useState(null);  // null | 'K1' | 'K2'
+    const [playerFilter, setPlayerFilter] = useState(null);    // null | playerId
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
     const reportContentRef = useRef(null);
 
@@ -136,7 +138,17 @@ function ReportViewer({ onGoToTracker }) {
     const handleMatchChange = (e) => {
         setSelectedMatchId(e.target.value);
         setSelectedSet(null);
+        setComplexFilter(null);
+        setPlayerFilter(null);
     };
+
+    const allPlayers = useMemo(() => {
+        if (!selectedMatch) return [];
+        return [
+            ...(selectedMatch.ownPlayers || []),
+            ...(selectedMatch.opponentPlayers || []),
+        ];
+    }, [selectedMatch]);
 
     // Assign a unique color per player
     const playerColors = useMemo(() => {
@@ -160,13 +172,15 @@ function ReportViewer({ onGoToTracker }) {
         return identifiers;
     }, [selectedMatch]);
 
-    // Actions filtered by selected set
+    // Actions filtered by set + complex + player (used for stats, charts, and court map)
     const filteredActions = useMemo(() => {
         if (!selectedMatch) return [];
-        const all = selectedMatch.actions || [];
-        if (selectedSet === null) return all;
-        return all.filter(a => a.setIndex === selectedSet);
-    }, [selectedMatch, selectedSet]);
+        let all = selectedMatch.actions || [];
+        if (selectedSet !== null) all = all.filter(a => a.setIndex === selectedSet);
+        if (complexFilter !== null) all = all.filter(a => a.complex === complexFilter);
+        if (playerFilter !== null) all = all.filter(a => a.playerId === playerFilter);
+        return all;
+    }, [selectedMatch, selectedSet, complexFilter, playerFilter]);
 
     // Stats derived from filtered actions
     const stats = useMemo(() => {
@@ -186,7 +200,16 @@ function ReportViewer({ onGoToTracker }) {
         const pdfHeight = pdf.internal.pageSize.getHeight();
         const ratio = Math.min(pdfWidth / canvas.width, pdfHeight / canvas.height);
         pdf.addImage(imgData, 'PNG', (pdfWidth - canvas.width * ratio) / 2, 20, canvas.width * ratio, canvas.height * ratio);
-        pdf.save(`informe_${selectedMatch.ownTeamName}.pdf`);
+
+        let filenameParts = ['informe', selectedMatch.ownTeamName.replace(/\s+/g, '_')];
+        if (selectedSet !== null) filenameParts.push(`Set${selectedSet + 1}`);
+        if (complexFilter !== null) filenameParts.push(complexFilter);
+        if (playerFilter !== null) {
+            const p = allPlayers.find(p => p.id === playerFilter);
+            if (p) filenameParts.push(p.name.replace(/\s+/g, '_'));
+        }
+        pdf.save(`${filenameParts.join('_')}.pdf`);
+
         setIsGeneratingPdf(false);
     };
 
@@ -247,6 +270,38 @@ function ReportViewer({ onGoToTracker }) {
                         ))}
                     </div>
 
+                    {/* K1 / K2 Complex filter */}
+                    <div className="complex-filter-bar">
+                        <span className="complex-filter-label">Complejo:</span>
+                        <button
+                            className={complexFilter === null ? 'complex-tab active' : 'complex-tab'}
+                            onClick={() => setComplexFilter(null)}
+                        >
+                            Todos
+                        </button>
+                        <button
+                            className={complexFilter === 'K1' ? 'complex-tab k1 active' : 'complex-tab k1'}
+                            onClick={() => setComplexFilter(complexFilter === 'K1' ? null : 'K1')}
+                            title="K1: Recepción → Armado → Ataque"
+                        >
+                            K1 — Recepción
+                        </button>
+                        <button
+                            className={complexFilter === 'K2' ? 'complex-tab k2 active' : 'complex-tab k2'}
+                            onClick={() => setComplexFilter(complexFilter === 'K2' ? null : 'K2')}
+                            title="K2: Saque → Defensa → Armado → Ataque"
+                        >
+                            K2 — Transición
+                        </button>
+                        {complexFilter && (
+                            <span className="complex-filter-info">
+                                {complexFilter === 'K1'
+                                    ? '📋 Recepción · Armado · Ataque'
+                                    : '📋 Saque · Defensa · Armado · Ataque'}
+                            </span>
+                        )}
+                    </div>
+
                     <div ref={reportContentRef} className="pdf-container">
                         {/* Header */}
                         <div className="pdf-header">
@@ -294,10 +349,44 @@ function ReportViewer({ onGoToTracker }) {
 
                         {/* Court maps — one per set OR all together */}
                         <div className="court-section">
-                            <h4>
-                                Mapa de Ataques
-                                {selectedSet !== null ? ` — Set ${selectedSet + 1}` : ' — Todos los Sets'}
-                            </h4>
+                            <div className="court-section-header">
+                                <h4>
+                                    Mapa de Ataques
+                                    {selectedSet !== null ? ` — Set ${selectedSet + 1}` : ' — Todos los Sets'}
+                                    {complexFilter ? ` · ${complexFilter}` : ''}
+                                    {playerFilter ? ` · ${playerIdentifiers[playerFilter] || ''} ${allPlayers.find(p => p.id === playerFilter)?.name || ''}` : ''}
+                                </h4>
+                                {/* Player filter buttons */}
+                                <div className="player-court-filter">
+                                    <button
+                                        className={playerFilter === null ? 'player-court-btn active' : 'player-court-btn'}
+                                        onClick={() => setPlayerFilter(null)}
+                                    >
+                                        Todos
+                                    </button>
+                                    {allPlayers.map((p, i) => (
+                                        <button
+                                            key={p.id}
+                                            className={playerFilter === p.id ? 'player-court-btn active' : 'player-court-btn'}
+                                            onClick={() => setPlayerFilter(playerFilter === p.id ? null : p.id)}
+                                            title={`Ver solo ataques de ${p.name}`}
+                                            style={{
+                                                borderColor: playerFilter === p.id ? PLAYER_COLORS[i % PLAYER_COLORS.length] : undefined,
+                                                color: playerFilter === p.id ? PLAYER_COLORS[i % PLAYER_COLORS.length] : undefined,
+                                                backgroundColor: playerFilter === p.id
+                                                    ? `${PLAYER_COLORS[i % PLAYER_COLORS.length]}18`
+                                                    : undefined,
+                                            }}
+                                        >
+                                            <span
+                                                className="player-btn-dot"
+                                                style={{ background: PLAYER_COLORS[i % PLAYER_COLORS.length] }}
+                                            />
+                                            {playerIdentifiers[p.id]} {p.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
 
                             {selectedSet !== null ? (
                                 /* Single court for selected set */
@@ -309,10 +398,12 @@ function ReportViewer({ onGoToTracker }) {
                                     />
                                 </div>
                             ) : (
-                                /* All sets side by side */
+                                /* All sets side by side, each respecting player filter */
                                 <div className="courts-grid">
                                     {selectedMatch.sets.map((_, i) => {
-                                        const setActions = (selectedMatch.actions || []).filter(a => a.setIndex === i);
+                                        let setActions = (selectedMatch.actions || []).filter(a => a.setIndex === i);
+                                        if (complexFilter !== null) setActions = setActions.filter(a => a.complex === complexFilter);
+                                        if (playerFilter !== null) setActions = setActions.filter(a => a.playerId === playerFilter);
                                         return (
                                             <div key={i} className="court-set-wrap">
                                                 <p className="court-set-label">Set {i + 1} · {selectedMatch.sets[i].own}–{selectedMatch.sets[i].opponent}</p>

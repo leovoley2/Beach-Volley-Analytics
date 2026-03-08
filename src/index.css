@@ -1101,3 +1101,149 @@ td {
     border: 2px solid rgba(255, 255, 255, 0.2);
     flex-shrink: 0;
 }
+
+/* ---- K1 / K2 Complex Filter Bar ---- */
+.complex-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-card-alt);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.complex-filter-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-secondary);
+    margin-right: 0.25rem;
+}
+
+.complex-tab {
+    padding: 0.4rem 1rem;
+    border-radius: 50px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    background: var(--bg-hover);
+    border: 1.5px solid var(--border);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--trans);
+}
+
+.complex-tab:hover:not(:disabled) {
+    color: var(--text-primary);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+/* K1 — teal/green accent */
+.complex-tab.k1.active {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+    border-color: #10b981;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+}
+
+.complex-tab.k1:hover:not(.active) {
+    color: #10b981;
+    border-color: rgba(16, 185, 129, 0.4);
+}
+
+/* K2 — amber accent */
+.complex-tab.k2.active {
+    background: rgba(245, 158, 11, 0.12);
+    color: #f59e0b;
+    border-color: #f59e0b;
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
+}
+
+.complex-tab.k2:hover:not(.active) {
+    color: #f59e0b;
+    border-color: rgba(245, 158, 11, 0.4);
+}
+
+/* Active "Todos" */
+.complex-tab.active:not(.k1):not(.k2) {
+    background: var(--accent-dim);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.complex-filter-info {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-style: italic;
+    margin-left: 0.25rem;
+}
+
+/* ---- Court section header with player filter ---- */
+.court-section-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.court-section-header h4 {
+    margin-bottom: 0;
+    padding-top: 0.1rem;
+}
+
+/* Player filter strip inside court section */
+.player-court-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.player-court-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 50px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: var(--bg-hover);
+    border: 1.5px solid var(--border);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--trans);
+    white-space: nowrap;
+}
+
+.player-court-btn:hover:not(:disabled) {
+    color: var(--text-primary);
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+}
+
+.player-court-btn.active {
+    font-weight: 700;
+    /* color/border/bg set inline per player color */
+}
+
+/* "Todos" active state */
+.player-court-btn.active:not([style]) {
+    background: var(--accent-dim);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+/* Color dot inside player button */
+.player-btn-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}

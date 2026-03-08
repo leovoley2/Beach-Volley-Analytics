@@ -72,6 +72,8 @@ function GameTracker() {
     const [selectedSkill, setSelectedSkill] = useState(null);
     const [attackType, setAttackType] = useState(null);
     const [selectedOutcome, setSelectedOutcome] = useState(null);
+    // Complejo actual K1 / K2 — se actualiza automáticamente al registrar ciertas acciones
+    const [currentComplex, setCurrentComplex] = useState(null);
 
     // Estado para el marcado en dos fases del ataque
     const [attackStartPos, setAttackStartPos] = useState(null);
@@ -125,17 +127,33 @@ function GameTracker() {
             }
         }
 
+        const finalSkill = selectedSkill === 'Ataque' ? `Ataque ${attackType}` : selectedSkill;
+
+        // --- Determinar el Complejo (K1 / K2) ---
+        // Recepción: siempre inicia K1
+        // Saque, Defensa, Bloqueo: siempre K2
+        // Armado, Ataque: heredan el contexto activo
+        let complex = currentComplex;
+        if (finalSkill === 'Recepción') {
+            complex = 'K1';
+        } else if (finalSkill === 'Saque' || finalSkill === 'Defensa' || finalSkill === 'Bloqueo') {
+            complex = 'K2';
+        }
+        // Para Armado y Ataque, mantiene el complejo actual (null si no se ha definido aún)
+
         const newAction = {
             playerId: activePlayerId,
-            skill: selectedSkill === 'Ataque' ? `Ataque ${attackType}` : selectedSkill,
+            skill: finalSkill,
             outcome: selectedOutcome,
-            setIndex: currentSetIndex,            // ← qué set ocurrió la acción
+            setIndex: currentSetIndex,
+            complex,                              // ← K1 o K2
             timestamp: new Date().toISOString(),
-            // Posición de inicio del ataque
             ...(startPos && { startX: startPos.x, startY: startPos.y }),
-            // Posición final (impacto)
             ...(endPos && { x: endPos.x, y: endPos.y }),
         };
+
+        // Actualizar el complejo activo para la próxima acción
+        setCurrentComplex(complex);
 
         const isOwnPlayer = currentMatch.ownPlayers.some(p => p.id === activePlayerId);
         const newSets = [...currentMatch.sets];
