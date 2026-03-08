@@ -923,6 +923,11 @@ td {
     align-items: start;
 }
 
+.player-charts-grid.scouting-mode {
+    grid-template-columns: 1fr;
+    /* Full width for the bar chart when doughnut is hidden */
+}
+
 @media (max-width: 620px) {
     .player-charts-grid {
         grid-template-columns: 1fr;

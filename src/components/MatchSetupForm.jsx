@@ -9,6 +9,7 @@ function MatchSetupForm({ onMatchStart }) {
     const [opponentPlayer1, setOpponentPlayer1] = useState('');
     const [opponentPlayer2, setOpponentPlayer2] = useState('');
     const [setsToWin, setSetsToWin] = useState('2'); // Por defecto, al mejor de 3 (ganar 2)
+    const [matchType, setMatchType] = useState('completo'); // 'completo' o 'scouting'
     const { addMatch } = useMatches();
 
     const handleStartMatch = (e) => {
@@ -31,6 +32,7 @@ function MatchSetupForm({ onMatchStart }) {
                 { id: 'opponent2', name: opponentPlayer2 }
             ],
             setsToWin: parseInt(setsToWin, 10),
+            matchType, // 'completo' (estadísticas totales) o 'scouting' (solo tendencias de ataque)
             sets: [{ own: 0, opponent: 0 }], // El primer set empieza 0-0
             score: { own: 0, opponent: 0 }, // Marcador de sets ganados
             actions: []
@@ -73,6 +75,13 @@ function MatchSetupForm({ onMatchStart }) {
                     <select value={setsToWin} onChange={(e) => setSetsToWin(e.target.value)}>
                         <option value="1">Partido a 1 set</option>
                         <option value="2">Al mejor de 3 sets (ganar 2)</option>
+                    </select>
+                </div>
+                <div className="form-group">
+                    <label>Modo de Registro</label>
+                    <select value={matchType} onChange={(e) => setMatchType(e.target.value)}>
+                        <option value="completo">Completo (Todos los fundamentos + K1/K2)</option>
+                        <option value="scouting">Scouting Rápido (Solo tendencias de ataque)</option>
                     </select>
                 </div>
                 <button type="submit" className="btn-primary">Iniciar Partido</button>

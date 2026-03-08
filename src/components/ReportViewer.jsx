@@ -270,37 +270,39 @@ function ReportViewer({ onGoToTracker }) {
                         ))}
                     </div>
 
-                    {/* K1 / K2 Complex filter */}
-                    <div className="complex-filter-bar">
-                        <span className="complex-filter-label">Complejo:</span>
-                        <button
-                            className={complexFilter === null ? 'complex-tab active' : 'complex-tab'}
-                            onClick={() => setComplexFilter(null)}
-                        >
-                            Todos
-                        </button>
-                        <button
-                            className={complexFilter === 'K1' ? 'complex-tab k1 active' : 'complex-tab k1'}
-                            onClick={() => setComplexFilter(complexFilter === 'K1' ? null : 'K1')}
-                            title="K1: Recepción → Armado → Ataque"
-                        >
-                            K1 — Recepción
-                        </button>
-                        <button
-                            className={complexFilter === 'K2' ? 'complex-tab k2 active' : 'complex-tab k2'}
-                            onClick={() => setComplexFilter(complexFilter === 'K2' ? null : 'K2')}
-                            title="K2: Saque → Defensa → Armado → Ataque"
-                        >
-                            K2 — Transición
-                        </button>
-                        {complexFilter && (
-                            <span className="complex-filter-info">
-                                {complexFilter === 'K1'
-                                    ? '📋 Recepción · Armado · Ataque'
-                                    : '📋 Saque · Defensa · Armado · Ataque'}
-                            </span>
-                        )}
-                    </div>
+                    {/* K1 / K2 Complex filter (Only if completely tracking K1/K2) */}
+                    {selectedMatch.matchType !== 'scouting' && (
+                        <div className="complex-filter-bar">
+                            <span className="complex-filter-label">Complejo:</span>
+                            <button
+                                className={complexFilter === null ? 'complex-tab active' : 'complex-tab'}
+                                onClick={() => setComplexFilter(null)}
+                            >
+                                Todos
+                            </button>
+                            <button
+                                className={complexFilter === 'K1' ? 'complex-tab k1 active' : 'complex-tab k1'}
+                                onClick={() => setComplexFilter(complexFilter === 'K1' ? null : 'K1')}
+                                title="K1: Recepción → Armado → Ataque"
+                            >
+                                K1 — Recepción
+                            </button>
+                            <button
+                                className={complexFilter === 'K2' ? 'complex-tab k2 active' : 'complex-tab k2'}
+                                onClick={() => setComplexFilter(complexFilter === 'K2' ? null : 'K2')}
+                                title="K2: Saque → Defensa → Armado → Ataque"
+                            >
+                                K2 — Transición
+                            </button>
+                            {complexFilter && (
+                                <span className="complex-filter-info">
+                                    {complexFilter === 'K1'
+                                        ? '📋 Recepción · Armado · Ataque'
+                                        : '📋 Saque · Defensa · Armado · Ataque'}
+                                </span>
+                            )}
+                        </div>
+                    )}
 
                     <div ref={reportContentRef} className="pdf-container">
                         {/* Header */}
@@ -468,6 +470,7 @@ function ReportViewer({ onGoToTracker }) {
                                     playerName={stats[playerId].name}
                                     playerStats={stats[playerId]}
                                     playerColor={playerColors[playerId]}
+                                    matchType={selectedMatch.matchType}
                                 />
                             ))
                         }

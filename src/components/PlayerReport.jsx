@@ -23,7 +23,7 @@ const OUTCOME_COLORS = {
 const OUTCOME_KEYS = ['Doble Positivo', 'Positivo', 'Overpass', 'Negativo', 'Doble Negativo'];
 const OUTCOME_LABELS = ['# Doble Positivo', '+ Positivo', '/ Overpass', '- Negativo', '= Doble Negativo'];
 
-function PlayerReport({ playerName, playerStats, playerColor }) {
+function PlayerReport({ playerName, playerStats, playerColor, matchType }) {
     if (!playerStats || !playerStats.skills) {
         return <div className="player-report error">Error: Faltan datos del jugador.</div>;
     }
@@ -156,7 +156,7 @@ function PlayerReport({ playerName, playerStats, playerColor }) {
             </div>
 
             {/* Charts section */}
-            <div className="player-charts-grid">
+            <div className={`player-charts-grid ${matchType === 'scouting' ? 'scouting-mode' : ''}`}>
                 {/* Main stacked bar */}
                 <div className="chart-bar-wrap">
                     <p className="chart-label">Resultados por Fundamento</p>
@@ -164,13 +164,15 @@ function PlayerReport({ playerName, playerStats, playerColor }) {
                         <Bar options={barOptions} data={barData} />
                     </div>
                 </div>
-                {/* Doughnut summary */}
-                <div className="chart-donut-wrap">
-                    <p className="chart-label">Distribución General</p>
-                    <div style={{ height: '180px' }}>
-                        <Doughnut options={doughnutOptions} data={doughnutData} />
+                {/* Doughnut summary (Hide in scouting mode because 100% is always 'Ataque') */}
+                {matchType !== 'scouting' && (
+                    <div className="chart-donut-wrap">
+                        <p className="chart-label">Distribución General</p>
+                        <div style={{ height: '180px' }}>
+                            <Doughnut options={doughnutOptions} data={doughnutData} />
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
             {/* Stats table — only skills with data */}

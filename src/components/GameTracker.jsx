@@ -114,9 +114,12 @@ function GameTracker() {
      * Registra una acción con posición opcional de inicio y fin (para ataques).
      */
     const registerAction = (startPos = null, endPos = null) => {
-        if (!activePlayerId || !selectedSkill || !selectedOutcome) return;
+        // En modo scouting asumimos Ataque si no hay skill seleccionado.
+        const skillToUse = currentMatch.matchType === 'scouting' ? 'Ataque' : selectedSkill;
 
-        if (selectedSkill === 'Ataque') {
+        if (!activePlayerId || !skillToUse || !selectedOutcome) return;
+
+        if (skillToUse === 'Ataque') {
             if (!attackType) {
                 alert('Por favor, selecciona el tipo de ataque (Contundente o Coloque).');
                 return;
@@ -133,6 +136,7 @@ function GameTracker() {
         // Recepción: siempre inicia K1
         // Saque, Defensa, Bloqueo: siempre K2
         // Armado, Ataque: heredan el contexto activo
+        // En modo scouting, el complejo no importa mucho, pero lo dejamos heredar.
         let complex = currentComplex;
         if (finalSkill === 'Recepción') {
             complex = 'K1';
@@ -153,7 +157,9 @@ function GameTracker() {
         };
 
         // Actualizar el complejo activo para la próxima acción
-        setCurrentComplex(complex);
+        if (currentMatch.matchType !== 'scouting') {
+            setCurrentComplex(complex);
+        }
 
         const isOwnPlayer = currentMatch.ownPlayers.some(p => p.id === activePlayerId);
         const newSets = [...currentMatch.sets];
@@ -167,7 +173,9 @@ function GameTracker() {
 
         // Resetear selecciones
         setActivePlayerId(null);
-        setSelectedSkill(null);
+        if (currentMatch.matchType !== 'scouting') {
+            setSelectedSkill(null);
+        }
         setAttackType(null);
         setSelectedOutcome(null);
         setAttackStartPos(null);
@@ -175,11 +183,12 @@ function GameTracker() {
     };
 
     const handleCourtClick = (e) => {
-        if (!activePlayerId || !selectedSkill || !selectedOutcome) {
+        const skillToUse = currentMatch.matchType === 'scouting' ? 'Ataque' : selectedSkill;
+        if (!activePlayerId || !skillToUse || !selectedOutcome) {
             alert('Por favor, selecciona jugador, fundamento y resultado antes de marcar.');
             return;
         }
-        if (selectedSkill !== 'Ataque') return;
+        if (skillToUse !== 'Ataque') return;
         if (!attackType) {
             alert('Por favor, selecciona el tipo de ataque primero.');
             return;
@@ -331,18 +340,20 @@ function GameTracker() {
                 )}
             </div>
 
-            {/* PASO 2: Fundamento */}
-            <div className={`card ${!activePlayerId || isMatchOver ? 'disabled' : ''}`}>
-                <h4>2. Selecciona Fundamento</h4>
-                <div className="button-grid">
-                    {SKILLS.map(s => (
-                        <button key={s} onClick={() => { setSelectedSkill(s); setAttackType(null); }} disabled={!activePlayerId} className={selectedSkill === s ? 'active' : ''}>{s}</button>
-                    ))}
+            {/* PASO 2: Fundamento (Oculto en modo scouting) */}
+            {currentMatch.matchType !== 'scouting' && (
+                <div className={`card ${!activePlayerId || isMatchOver ? 'disabled' : ''}`}>
+                    <h4>2. Selecciona Fundamento</h4>
+                    <div className="button-grid">
+                        {SKILLS.map(s => (
+                            <button key={s} onClick={() => { setSelectedSkill(s); setAttackType(null); }} disabled={!activePlayerId} className={selectedSkill === s ? 'active' : ''}>{s}</button>
+                        ))}
+                    </div>
                 </div>
-            </div>
+            )}
 
-            {/* PASO 2.a: Tipo de Ataque (solo si aplica) */}
-            {selectedSkill === 'Ataque' && (
+            {/* PASO 2.a: Tipo de Ataque (solo si aplica o en modo scouting) */}
+            {(selectedSkill === 'Ataque' || currentMatch.matchType === 'scouting') && (
                 <div className={`card ${isMatchOver ? 'disabled' : ''}`}>
                     <h4>2.a. Tipo de Ataque</h4>
                     <div className="button-group">
@@ -353,11 +364,12 @@ function GameTracker() {
             )}
 
             {/* PASO 3: Resultado */}
-            <div className={`card ${!selectedSkill || isMatchOver ? 'disabled' : ''}`}>
+            <div className={`card ${(!selectedSkill && currentMatch.matchType !== 'scouting') || isMatchOver ? 'disabled' : ''}`}>
                 <h4>3. Evalúa el resultado</h4>
                 <div className="outcomes-grid">
                     {OUTCOMES.map(({ key, symbol }) => {
-                        const baseSkillForDesc = selectedSkill?.startsWith('Ataque') ? 'Ataque' : selectedSkill;
+                        const skillToUse = currentMatch.matchType === 'scouting' ? 'Ataque' : selectedSkill;
+                        const baseSkillForDesc = skillToUse?.startsWith('Ataque') ? 'Ataque' : skillToUse;
                         const description = baseSkillForDesc && OUTCOME_DESCRIPTIONS[baseSkillForDesc]
                             ? OUTCOME_DESCRIPTIONS[baseSkillForDesc][key]
                             : '';
@@ -365,7 +377,7 @@ function GameTracker() {
                             <button
                                 key={key}
                                 onClick={() => setSelectedOutcome(key)}
-                                disabled={!selectedSkill}
+                                disabled={!skillToUse}
                                 className={`outcome-btn outcome-${key.toLowerCase().replace(' ', '-')} ${selectedOutcome === key ? 'active' : ''}`}
                             >
                                 <span className="outcome-symbol">{symbol}</span>
@@ -381,7 +393,7 @@ function GameTracker() {
             <div className={`card ${!selectedOutcome || isMatchOver ? 'disabled' : ''}`}>
                 <h4>4. Registrar Acción</h4>
 
-                {!requiresCourt ? (
+                {(!requiresCourt && currentMatch.matchType !== 'scouting') ? (
                     /* Fundamentos sin cancha: Saque, Recepción, Armado, Bloqueo, Defensa */
                     <div className="register-direct">
                         <p className="court-tip">
@@ -398,7 +410,7 @@ function GameTracker() {
                 ) : (
                     /* Ataque: requiere marcar inicio y fin en la cancha */
                     <div>
-                        {selectedSkill && !attackType && (
+                        {(selectedSkill || currentMatch.matchType === 'scouting') && !attackType && (
                             <p className="court-tip" style={{ color: '#e07b00', fontWeight: 600 }}>
                                 ⚠ Selecciona primero el tipo de ataque (paso 2.a)
                             </p>
