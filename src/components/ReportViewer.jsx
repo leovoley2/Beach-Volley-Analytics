@@ -127,6 +127,7 @@ function ReportViewer({ onGoToTracker }) {
     const [selectedSet, setSelectedSet] = useState(null);     // null = Todos los Sets
     const [complexFilter, setComplexFilter] = useState(null);  // null | 'K1' | 'K2'
     const [playerFilter, setPlayerFilter] = useState(null);    // null | playerId
+    const [attackFilter, setAttackFilter] = useState(null);    // null | 'Ataque Contundente' | 'Ataque Coloque'
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
     const reportContentRef = useRef(null);
 
@@ -140,6 +141,7 @@ function ReportViewer({ onGoToTracker }) {
         setSelectedSet(null);
         setComplexFilter(null);
         setPlayerFilter(null);
+        setAttackFilter(null);
     };
 
     const allPlayers = useMemo(() => {
@@ -179,8 +181,9 @@ function ReportViewer({ onGoToTracker }) {
         if (selectedSet !== null) all = all.filter(a => a.setIndex === selectedSet);
         if (complexFilter !== null) all = all.filter(a => a.complex === complexFilter);
         if (playerFilter !== null) all = all.filter(a => a.playerId === playerFilter);
+        if (attackFilter !== null) all = all.filter(a => a.skill === attackFilter);
         return all;
-    }, [selectedMatch, selectedSet, complexFilter, playerFilter]);
+    }, [selectedMatch, selectedSet, complexFilter, playerFilter, attackFilter]);
 
     // Stats derived from filtered actions
     const stats = useMemo(() => {
@@ -204,6 +207,7 @@ function ReportViewer({ onGoToTracker }) {
         let filenameParts = ['informe', selectedMatch.ownTeamName.replace(/\s+/g, '_')];
         if (selectedSet !== null) filenameParts.push(`Set${selectedSet + 1}`);
         if (complexFilter !== null) filenameParts.push(complexFilter);
+        if (attackFilter !== null) filenameParts.push(attackFilter === 'Ataque Contundente' ? 'Contundente' : 'Coloque');
         if (playerFilter !== null) {
             const p = allPlayers.find(p => p.id === playerFilter);
             if (p) filenameParts.push(p.name.replace(/\s+/g, '_'));
@@ -304,6 +308,40 @@ function ReportViewer({ onGoToTracker }) {
                         </div>
                     )}
 
+                    {/* Attack-type filter: Todos / Contundente / Coloque */}
+                    <div className="complex-filter-bar">
+                        <span className="complex-filter-label">Tipo de Ataque:</span>
+                        <button
+                            className={attackFilter === null ? 'complex-tab active' : 'complex-tab'}
+                            onClick={() => setAttackFilter(null)}
+                        >
+                            Todos
+                        </button>
+                        <button
+                            className={attackFilter === 'Ataque Contundente' ? 'complex-tab active' : 'complex-tab'}
+                            onClick={() => setAttackFilter(attackFilter === 'Ataque Contundente' ? null : 'Ataque Contundente')}
+                            title="Mostrar solo ataques contundentes (potencia)"
+                            style={attackFilter === 'Ataque Contundente' ? { borderColor: '#e74c3c', color: '#e74c3c', backgroundColor: 'rgba(231,76,60,0.12)' } : {}}
+                        >
+                            ⚡ Contundente
+                        </button>
+                        <button
+                            className={attackFilter === 'Ataque Coloque' ? 'complex-tab active' : 'complex-tab'}
+                            onClick={() => setAttackFilter(attackFilter === 'Ataque Coloque' ? null : 'Ataque Coloque')}
+                            title="Mostrar solo ataques de coloque (colocación)"
+                            style={attackFilter === 'Ataque Coloque' ? { borderColor: '#9b59b6', color: '#9b59b6', backgroundColor: 'rgba(155,89,182,0.12)' } : {}}
+                        >
+                            🎯 Coloque
+                        </button>
+                        {attackFilter && (
+                            <span className="complex-filter-info">
+                                {attackFilter === 'Ataque Contundente'
+                                    ? '🔴 Solo ataques de potencia'
+                                    : '🟣 Solo ataques de colocación'}
+                            </span>
+                        )}
+                    </div>
+
                     <div ref={reportContentRef} className="pdf-container">
                         {/* Header */}
                         <div className="pdf-header">
@@ -356,6 +394,7 @@ function ReportViewer({ onGoToTracker }) {
                                     Mapa de Ataques
                                     {selectedSet !== null ? ` — Set ${selectedSet + 1}` : ' — Todos los Sets'}
                                     {complexFilter ? ` · ${complexFilter}` : ''}
+                                    {attackFilter ? ` · ${attackFilter === 'Ataque Contundente' ? '⚡ Contundente' : '🎯 Coloque'}` : ''}
                                     {playerFilter ? ` · ${playerIdentifiers[playerFilter] || ''} ${allPlayers.find(p => p.id === playerFilter)?.name || ''}` : ''}
                                 </h4>
                                 {/* Player filter buttons */}
@@ -406,6 +445,7 @@ function ReportViewer({ onGoToTracker }) {
                                         let setActions = (selectedMatch.actions || []).filter(a => a.setIndex === i);
                                         if (complexFilter !== null) setActions = setActions.filter(a => a.complex === complexFilter);
                                         if (playerFilter !== null) setActions = setActions.filter(a => a.playerId === playerFilter);
+                                        if (attackFilter !== null) setActions = setActions.filter(a => a.skill === attackFilter);
                                         return (
                                             <div key={i} className="court-set-wrap">
                                                 <p className="court-set-label">Set {i + 1} · {selectedMatch.sets[i].own}–{selectedMatch.sets[i].opponent}</p>
