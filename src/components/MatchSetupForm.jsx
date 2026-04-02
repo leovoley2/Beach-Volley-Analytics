@@ -19,17 +19,18 @@ function MatchSetupForm({ onMatchStart }) {
             return;
         }
 
+        const ts = Date.now();
         const newMatchData = {
             date: new Date().toISOString().split('T')[0],
             ownTeamName,
             opponentTeamName,
             ownPlayers: [
-                { id: 'player1', name: player1 },
-                { id: 'player2', name: player2 }
+                { id: `p1_${ts}`, name: player1 },
+                { id: `p2_${ts}`, name: player2 }
             ],
             opponentPlayers: [
-                { id: 'opponent1', name: opponentPlayer1 },
-                { id: 'opponent2', name: opponentPlayer2 }
+                { id: `o1_${ts}`, name: opponentPlayer1 },
+                { id: `o2_${ts}`, name: opponentPlayer2 }
             ],
             setsToWin: parseInt(setsToWin, 10),
             matchType, // 'completo' (estadísticas totales) o 'scouting' (solo tendencias de ataque)

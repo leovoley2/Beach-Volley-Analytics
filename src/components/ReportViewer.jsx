@@ -511,6 +511,8 @@ function ReportViewer({ onGoToTracker }) {
                                     playerStats={stats[playerId]}
                                     playerColor={playerColors[playerId]}
                                     matchType={selectedMatch.matchType}
+                                    playerActions={filteredActions.filter(a => a.playerId === playerId)}
+                                    allSetActions={filteredActions}
                                 />
                             ))
                         }

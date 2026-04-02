@@ -224,8 +224,10 @@ function GameTracker() {
         const newActions = currentMatch.actions.slice(0, -1);
         const wasOwnPlayer = currentMatch.ownPlayers.some(p => p.id === lastAction.playerId);
 
+        // BUG FIX: revert the score in the set where the action was actually recorded
+        const actionSetIndex = lastAction.setIndex ?? currentSetIndex;
         const newSets = [...currentMatch.sets];
-        const prevScore = { ...newSets[currentSetIndex] };
+        const prevScore = { ...newSets[actionSetIndex] };
         const baseSkill = lastAction.skill.startsWith('Ataque') ? 'Ataque' : lastAction.skill;
         const DIRECT_POSITIVE_SKILLS = ['Saque', 'Ataque', 'Bloqueo'];
 
@@ -240,13 +242,21 @@ function GameTracker() {
             else { prevScore.own = Math.max(0, prevScore.own - 1); }
         }
 
-        newSets[currentSetIndex] = prevScore;
+        newSets[actionSetIndex] = prevScore;
         updateMatch({ ...currentMatch, actions: newActions, sets: newSets });
     };
 
     const handleFinishSet = () => {
+        // BUG FIX: don't allow finishing a set if the match is already over
+        if (isMatchOver) {
+            alert('El partido ya ha finalizado.');
+            return;
+        }
+
         const { own, opponent } = currentSetScore;
-        const isTieBreak = currentSetIndex === 2;
+        // Tiebreak is the last possible set (setsToWin * 2 - 1), e.g. set 3 in best-of-3
+        const maxSets = currentMatch.setsToWin * 2 - 1;
+        const isTieBreak = currentSetIndex === maxSets - 1;
         const targetScore = isTieBreak ? 15 : 21;
 
         const ownWinsSet = own >= targetScore && own >= opponent + 2;
