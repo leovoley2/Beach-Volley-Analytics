@@ -121,7 +121,7 @@ function GameTracker() {
 
         if (skillToUse === 'Ataque') {
             if (!attackType) {
-                alert('Por favor, selecciona el tipo de ataque (Contundente o Coloque).');
+                alert('Por favor, selecciona el tipo de ataque (Contundente, Coloque o 2 Toques).');
                 return;
             }
             if (!startPos || !endPos) {
@@ -366,9 +366,31 @@ function GameTracker() {
             {(selectedSkill === 'Ataque' || currentMatch.matchType === 'scouting') && (
                 <div className={`card ${isMatchOver ? 'disabled' : ''}`}>
                     <h4>2.a. Tipo de Ataque</h4>
-                    <div className="button-group">
-                        <button onClick={() => setAttackType('Contundente')} className={attackType === 'Contundente' ? 'active' : ''}>⚡ Ataque Contundente</button>
-                        <button onClick={() => setAttackType('Coloque')} className={attackType === 'Coloque' ? 'active' : ''}>🎯 Coloque / Tiro</button>
+                    <div className="attack-type-group">
+                        <button
+                            onClick={() => setAttackType('Contundente')}
+                            className={`attack-type-btn attack-type-contundente ${attackType === 'Contundente' ? 'active' : ''}`}
+                        >
+                            <span className="attack-type-icon">⚡</span>
+                            <span className="attack-type-label">Contundente</span>
+                            <span className="attack-type-sub">Remate potente</span>
+                        </button>
+                        <button
+                            onClick={() => setAttackType('Coloque')}
+                            className={`attack-type-btn attack-type-coloque ${attackType === 'Coloque' ? 'active' : ''}`}
+                        >
+                            <span className="attack-type-icon">🎯</span>
+                            <span className="attack-type-label">Coloque / Tiro</span>
+                            <span className="attack-type-sub">Dirección y precisión</span>
+                        </button>
+                        <button
+                            onClick={() => setAttackType('2 Toques')}
+                            className={`attack-type-btn attack-type-dos-toques ${attackType === '2 Toques' ? 'active' : ''}`}
+                        >
+                            <span className="attack-type-icon">✌️</span>
+                            <span className="attack-type-label">2 Toques</span>
+                            <span className="attack-type-sub">Pase directo al rival</span>
+                        </button>
                     </div>
                 </div>
             )}

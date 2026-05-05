@@ -1252,3 +1252,103 @@ td {
     border-radius: 50%;
     flex-shrink: 0;
 }
+
+/* ---- Attack Type Selector ---- */
+.attack-type-group {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.65rem;
+}
+
+@media (max-width: 540px) {
+    .attack-type-group {
+        grid-template-columns: 1fr;
+    }
+}
+
+.attack-type-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.9rem 0.5rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: var(--trans);
+    background: var(--bg-card-alt);
+    text-align: center;
+}
+
+.attack-type-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+.attack-type-icon {
+    font-size: 1.6rem;
+    line-height: 1;
+}
+
+.attack-type-label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.attack-type-sub {
+    font-size: 0.65rem;
+    font-weight: 400;
+    opacity: 0.7;
+    line-height: 1.2;
+}
+
+/* Contundente — orange/red energy */
+.attack-type-contundente {
+    border-color: rgba(249, 115, 22, 0.3);
+    color: var(--accent);
+}
+.attack-type-contundente:hover:not(:disabled) {
+    background: rgba(249, 115, 22, 0.12);
+    border-color: var(--accent);
+}
+.attack-type-contundente.active {
+    background: rgba(249, 115, 22, 0.18);
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 16px rgba(249, 115, 22, 0.4);
+}
+
+/* Coloque — blue precision */
+.attack-type-coloque {
+    border-color: rgba(59, 130, 246, 0.3);
+    color: var(--accent-blue);
+}
+.attack-type-coloque:hover:not(:disabled) {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: var(--accent-blue);
+}
+.attack-type-coloque.active {
+    background: rgba(59, 130, 246, 0.18);
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+    box-shadow: 0 0 16px rgba(59, 130, 246, 0.4);
+}
+
+/* 2 Toques — teal/emerald, dashed border to signal special action */
+.attack-type-dos-toques {
+    border: 2px dashed rgba(20, 184, 166, 0.4);
+    color: #14b8a6;
+}
+.attack-type-dos-toques:hover:not(:disabled) {
+    background: rgba(20, 184, 166, 0.1);
+    border-color: #14b8a6;
+    border-style: dashed;
+}
+.attack-type-dos-toques.active {
+    background: rgba(20, 184, 166, 0.16);
+    border-color: #14b8a6;
+    border-style: dashed;
+    color: #14b8a6;
+    box-shadow: 0 0 16px rgba(20, 184, 166, 0.35);
+}
