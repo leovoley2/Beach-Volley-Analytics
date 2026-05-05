@@ -4,7 +4,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import PlayerReport from './PlayerReport';
 
-const SKILLS = ['Saque', 'Recepción', 'Armado', 'Ataque Contundente', 'Ataque Coloque', 'Bloqueo', 'Defensa'];
+const SKILLS = ['Saque', 'Recepción', 'Armado', 'Ataque Contundente', 'Ataque Coloque', 'Ataque 2 Toques', 'Bloqueo', 'Defensa'];
 const SVG_WIDTH = 500, SVG_HEIGHT = 300, COURT_X_PADDING = 50, COURT_Y_PADDING = 50;
 const COURT_WIDTH = SVG_WIDTH - 2 * COURT_X_PADDING, COURT_HEIGHT = SVG_HEIGHT - 2 * COURT_Y_PADDING;
 
@@ -56,6 +56,7 @@ function CourtSVG({ actions, playerColors, playerIdentifiers }) {
                 const y1 = action.startY * SVG_HEIGHT;
                 const isColoque = action.skill === 'Ataque Coloque';
                 const isContundente = action.skill === 'Ataque Contundente';
+                const is2Toques = action.skill === 'Ataque 2 Toques';
                 const cx = (x1 + x2) / 2;
                 const cy = (y1 + y2) / 2 - 55;
 
@@ -77,6 +78,12 @@ function CourtSVG({ actions, playerColors, playerIdentifiers }) {
                         ) : isContundente ? (
                             <line x1={x1} y1={y1} x2={x2} y2={y2}
                                 stroke="#e74c3c" strokeWidth="2.8" strokeLinecap="round" opacity="0.8" />
+                        ) : is2Toques ? (
+                            <path
+                                d={`M ${x1} ${y1} Q ${cx} ${cy + 30} ${x2} ${y2}`}
+                                fill="none" stroke="#14b8a6" strokeWidth="2"
+                                strokeDasharray="6 3" strokeLinecap="round" opacity="0.85"
+                            />
                         ) : (
                             <line x1={x1} y1={y1} x2={x2} y2={y2}
                                 stroke="rgba(0,0,0,0.35)" strokeWidth="1.5" strokeDasharray="5 3" />
@@ -127,7 +134,7 @@ function ReportViewer({ onGoToTracker }) {
     const [selectedSet, setSelectedSet] = useState(null);     // null = Todos los Sets
     const [complexFilter, setComplexFilter] = useState(null);  // null | 'K1' | 'K2'
     const [playerFilter, setPlayerFilter] = useState(null);    // null | playerId
-    const [attackFilter, setAttackFilter] = useState(null);    // null | 'Ataque Contundente' | 'Ataque Coloque'
+    const [attackFilter, setAttackFilter] = useState(null);    // null | 'Ataque Contundente' | 'Ataque Coloque' | 'Ataque 2 Toques'
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
     const reportContentRef = useRef(null);
 
@@ -207,7 +214,10 @@ function ReportViewer({ onGoToTracker }) {
         let filenameParts = ['informe', selectedMatch.ownTeamName.replace(/\s+/g, '_')];
         if (selectedSet !== null) filenameParts.push(`Set${selectedSet + 1}`);
         if (complexFilter !== null) filenameParts.push(complexFilter);
-        if (attackFilter !== null) filenameParts.push(attackFilter === 'Ataque Contundente' ? 'Contundente' : 'Coloque');
+        if (attackFilter !== null) filenameParts.push(
+            attackFilter === 'Ataque Contundente' ? 'Contundente' :
+            attackFilter === 'Ataque Coloque' ? 'Coloque' : '2Toques'
+        );
         if (playerFilter !== null) {
             const p = allPlayers.find(p => p.id === playerFilter);
             if (p) filenameParts.push(p.name.replace(/\s+/g, '_'));
@@ -308,7 +318,7 @@ function ReportViewer({ onGoToTracker }) {
                         </div>
                     )}
 
-                    {/* Attack-type filter: Todos / Contundente / Coloque */}
+                    {/* Attack-type filter: Todos / Contundente / Coloque / 2 Toques */}
                     <div className="complex-filter-bar">
                         <span className="complex-filter-label">Tipo de Ataque:</span>
                         <button
@@ -333,11 +343,21 @@ function ReportViewer({ onGoToTracker }) {
                         >
                             🎯 Coloque
                         </button>
+                        <button
+                            className={attackFilter === 'Ataque 2 Toques' ? 'complex-tab active' : 'complex-tab'}
+                            onClick={() => setAttackFilter(attackFilter === 'Ataque 2 Toques' ? null : 'Ataque 2 Toques')}
+                            title="Mostrar solo acciones de 2 toques"
+                            style={attackFilter === 'Ataque 2 Toques' ? { borderColor: '#14b8a6', color: '#14b8a6', backgroundColor: 'rgba(20,184,166,0.12)', borderStyle: 'dashed' } : {}}
+                        >
+                            ✌️ 2 Toques
+                        </button>
                         {attackFilter && (
                             <span className="complex-filter-info">
                                 {attackFilter === 'Ataque Contundente'
                                     ? '🔴 Solo ataques de potencia'
-                                    : '🟣 Solo ataques de colocación'}
+                                    : attackFilter === 'Ataque Coloque'
+                                    ? '🟣 Solo ataques de colocación'
+                                    : '🟡 Solo 2 Toques (pase directo)'}
                             </span>
                         )}
                     </div>
@@ -394,7 +414,10 @@ function ReportViewer({ onGoToTracker }) {
                                     Mapa de Ataques
                                     {selectedSet !== null ? ` — Set ${selectedSet + 1}` : ' — Todos los Sets'}
                                     {complexFilter ? ` · ${complexFilter}` : ''}
-                                    {attackFilter ? ` · ${attackFilter === 'Ataque Contundente' ? '⚡ Contundente' : '🎯 Coloque'}` : ''}
+                                    {attackFilter ? ` · ${
+                                        attackFilter === 'Ataque Contundente' ? '⚡ Contundente' :
+                                        attackFilter === 'Ataque Coloque' ? '🎯 Coloque' : '✌️ 2 Toques'
+                                    }` : ''}
                                     {playerFilter ? ` · ${playerIdentifiers[playerFilter] || ''} ${allPlayers.find(p => p.id === playerFilter)?.name || ''}` : ''}
                                 </h4>
                                 {/* Player filter buttons */}
@@ -484,6 +507,10 @@ function ReportViewer({ onGoToTracker }) {
                                     <span className="traj-item">
                                         <svg width="28" height="14"><path d="M 0 10 Q 14 0 28 10" fill="none" stroke="#9b59b6" strokeWidth="1.8" strokeDasharray="4 3" strokeLinecap="round" /></svg>
                                         Coloque
+                                    </span>
+                                    <span className="traj-item">
+                                        <svg width="28" height="14"><path d="M 0 4 Q 14 14 28 4" fill="none" stroke="#14b8a6" strokeWidth="2" strokeDasharray="6 3" strokeLinecap="round" /></svg>
+                                        2 Toques
                                     </span>
                                     <span className="traj-item">
                                         <svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="#16a34a" /></svg>

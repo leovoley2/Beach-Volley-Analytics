@@ -8,7 +8,7 @@ import {
 
 Chart.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-const ALL_SKILLS = ['Saque', 'Recepción', 'Armado', 'Ataque Contundente', 'Ataque Coloque', 'Bloqueo', 'Defensa'];
+const ALL_SKILLS = ['Saque', 'Recepción', 'Armado', 'Ataque Contundente', 'Ataque Coloque', 'Ataque 2 Toques', 'Bloqueo', 'Defensa'];
 
 // Color palette aligned with index.css tokens
 const OUTCOME_COLORS = {
@@ -23,7 +23,7 @@ const OUTCOME_KEYS = ['Doble Positivo', 'Positivo', 'Overpass', 'Negativo', 'Dob
 const OUTCOME_LABELS = ['# Doble Positivo', '+ Positivo', '/ Overpass', '- Negativo', '= Doble Negativo'];
 
 // Scoring skills that generate a point on Doble Positivo
-const SCORING_SKILLS = ['Saque', 'Ataque Contundente', 'Ataque Coloque', 'Bloqueo'];
+const SCORING_SKILLS = ['Saque', 'Ataque Contundente', 'Ataque Coloque', 'Ataque 2 Toques', 'Bloqueo'];
 
 /**
  * Reconstructs rallies (puntos) from the raw, ordered action list.
@@ -118,7 +118,7 @@ function PointChronology({ playerActions, allSetActions, playerColor, playerName
     const rightPad = 12;
 
     // All unique skills present in these actions (ordered)
-    const skillOrder = ['Saque', 'Recepción', 'Armado', 'Ataque Contundente', 'Ataque Coloque', 'Bloqueo', 'Defensa'];
+    const skillOrder = ['Saque', 'Recepción', 'Armado', 'Ataque Contundente', 'Ataque Coloque', 'Ataque 2 Toques', 'Bloqueo', 'Defensa'];
     const activeSkills = skillOrder.filter(sk => playerActions.some(a => a.skill === sk));
 
     const svgW = leftPad + rallies.length * colW + rightPad;
