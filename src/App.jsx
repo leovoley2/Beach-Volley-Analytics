@@ -1,71 +1,48 @@
-import React, { useState } from 'react';
-import { MatchProvider, useMatches } from './context/MatchContext';
-import MatchSetupForm from './components/MatchSetupForm';
-import GameTracker from './components/GameTracker';
-import ReportViewer from './components/ReportViewer';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import { MatchProvider } from './context/MatchContext';
+import ProtectedRoute from './components/ProtectedRoute';
+
+import Login          from './pages/Login';
+import Signup         from './pages/Signup';
+import Dashboard      from './pages/Dashboard';
+import NewMatch       from './pages/NewMatch';
+import Pricing        from './pages/Pricing';
+import PaymentSuccess from './pages/PaymentSuccess';
+import MatchApp       from './MatchApp';
+
 import './index.css';
 
-function AppContent() {
-    const { currentMatch } = useMatches();
-    const [view, setView] = useState('setup');
-
-    const renderCurrentView = () => {
-        switch (view) {
-            case 'tracker':
-                return currentMatch ? <GameTracker /> : <MatchSetupForm onMatchStart={() => setView('tracker')} />;
-            case 'reports':
-                return <ReportViewer onGoToTracker={() => setView('tracker')} />;
-            case 'setup':
-            default:
-                return <MatchSetupForm onMatchStart={() => setView('tracker')} />;
-        }
-    };
-
+export default function App() {
     return (
-        <div className="container">
-            <header>
-                <div className="brand">
-                    <h1>
-                        <span>🏐</span>
-                        Beach Volley <span className="accent">Analytics</span>
-                    </h1>
-                    <p>Performance Tracking · Match Analysis</p>
-                </div>
-                <nav>
-                    <button
-                        onClick={() => setView('setup')}
-                        className={view === 'setup' ? 'nav-active' : ''}
-                    >
-                        Nuevo Partido
-                    </button>
-                    <button
-                        onClick={() => setView('tracker')}
-                        disabled={!currentMatch}
-                        className={view === 'tracker' ? 'nav-active' : ''}
-                    >
-                        Partido Actual
-                    </button>
-                    <button
-                        onClick={() => setView('reports')}
-                        className={view === 'reports' ? 'nav-active' : ''}
-                    >
-                        Informes
-                    </button>
-                </nav>
-            </header>
-            <main>
-                {renderCurrentView()}
-            </main>
-        </div>
+        <AuthProvider>
+            <BrowserRouter>
+                <Routes>
+                    {/* Rutas públicas */}
+                    <Route path="/login"  element={<Login />} />
+                    <Route path="/signup" element={<Signup />} />
+
+                    {/* Rutas protegidas */}
+                    <Route path="/dashboard"      element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                    <Route path="/match/new"      element={<ProtectedRoute><NewMatch /></ProtectedRoute>} />
+                    <Route path="/pricing"        element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
+                    <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
+
+                    {/* Tracker + Informe por partido (usa MatchContext y los componentes existentes) */}
+                    <Route path="/match/:matchId/*" element={
+                        <ProtectedRoute>
+                            <MatchProvider>
+                                <MatchApp />
+                            </MatchProvider>
+                        </ProtectedRoute>
+                    } />
+
+                    {/* Redirect raíz */}
+                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                </Routes>
+            </BrowserRouter>
+        </AuthProvider>
     );
 }
-
-function App() {
-    return (
-        <MatchProvider>
-            <AppContent />
-        </MatchProvider>
-    );
-}
-
-export default App;

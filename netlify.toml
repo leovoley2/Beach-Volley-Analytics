@@ -1,15 +1,18 @@
-# Configuración para el despliegue en Netlify
-
 [build]
-  # Comando para construir el proyecto. Vite usa "npm run build".
-  command = "npm run build"
-  
-  # Directorio donde se guardan los archivos construidos. Vite usa "dist".
-  publish = "dist"
+  command   = "npm run build"
+  publish   = "dist"
+  functions = "netlify/functions"
 
-# Regla de redirección para Single-Page Applications (SPA) como React.
-# Esto asegura que todas las rutas sean manejadas por index.html y el router de React.
+# SPA redirect — todas las rutas van a index.html excepto las funciones
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
+  from   = "/api/*"
+  to     = "/.netlify/functions/:splat"
   status = 200
+
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
+
+[functions]
+  node_bundler = "esbuild"
