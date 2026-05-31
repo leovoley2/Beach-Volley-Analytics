@@ -7,11 +7,15 @@ export default function ProtectedRoute({ children }) {
 
     if (loading) {
         return (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+            <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                height: '100vh', background: '#0b0f1a',
+            }}>
                 <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🏐</div>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Cargando...</p>
+                    <div style={{ fontSize: '3rem', marginBottom: '1rem', animation: 'spin 2s linear infinite', display: 'inline-block' }}>🏐</div>
+                    <p style={{ color: '#7a8899', fontSize: '0.9rem', fontFamily: 'Inter, sans-serif' }}>Cargando...</p>
                 </div>
+                <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
             </div>
         );
     }

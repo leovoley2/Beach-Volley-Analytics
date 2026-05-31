@@ -4,36 +4,91 @@ import { supabase } from '../lib/supabase';
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-    const [user, setUser]               = useState(null);
+    const [user, setUser]                 = useState(null);
     const [subscription, setSubscription] = useState(null);
-    const [loading, setLoading]         = useState(true);
+    const [loading, setLoading]           = useState(true);
 
     useEffect(() => {
-        // Sesión inicial
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setUser(session?.user ?? null);
-            if (session?.user) fetchSubscription(session.user.id);
-            else setLoading(false);
-        });
+        let mounted = true;
 
-        // Escuchar cambios de auth
-        const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user ?? null);
-            if (session?.user) fetchSubscription(session.user.id);
-            else { setSubscription(null); setLoading(false); }
-        });
+        // Timeout de seguridad: si en 8 segundos no resuelve, desbloquear la app
+        const safetyTimeout = setTimeout(() => {
+            if (mounted) {
+                console.warn('AuthContext: timeout de seguridad activado');
+                setLoading(false);
+            }
+        }, 8000);
 
-        return () => authSub.unsubscribe();
+        async function initAuth() {
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
+                if (!mounted) return;
+
+                if (error) {
+                    console.error('Error al obtener sesión:', error.message);
+                    setLoading(false);
+                    return;
+                }
+
+                if (session?.user) {
+                    setUser(session.user);
+                    await fetchSubscription(session.user.id);
+                } else {
+                    setUser(null);
+                    setSubscription(null);
+                    setLoading(false);
+                }
+            } catch (err) {
+                console.error('AuthContext init error:', err);
+                if (mounted) setLoading(false);
+            } finally {
+                clearTimeout(safetyTimeout);
+            }
+        }
+
+        initAuth();
+
+        // Listener para cambios de sesión (login / logout)
+        const { data: { subscription: authListener } } = supabase.auth.onAuthStateChange(
+            async (_event, session) => {
+                if (!mounted) return;
+                if (session?.user) {
+                    setUser(session.user);
+                    await fetchSubscription(session.user.id);
+                } else {
+                    setUser(null);
+                    setSubscription(null);
+                    setLoading(false);
+                }
+            }
+        );
+
+        return () => {
+            mounted = false;
+            clearTimeout(safetyTimeout);
+            authListener?.unsubscribe();
+        };
     }, []);
 
     async function fetchSubscription(userId) {
-        const { data } = await supabase
-            .from('subscriptions')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
-        setSubscription(data ?? { plan: 'free', status: 'active' });
-        setLoading(false);
+        try {
+            const { data, error } = await supabase
+                .from('subscriptions')
+                .select('*')
+                .eq('user_id', userId)
+                .single();
+
+            if (error && error.code !== 'PGRST116') {
+                // PGRST116 = no rows found (usuario nuevo aún sin fila)
+                console.error('Error fetching subscription:', error.message);
+            }
+            setSubscription(data ?? { plan: 'free', status: 'active' });
+        } catch (err) {
+            console.error('fetchSubscription error:', err);
+            setSubscription({ plan: 'free', status: 'active' });
+        } finally {
+            setLoading(false);
+        }
     }
 
     async function signUp(email, password, fullName) {
@@ -67,12 +122,18 @@ export function AuthProvider({ children }) {
     const isPaid = isPro || isTeam;
 
     return (
-        <AuthContext.Provider value={{ user, subscription, loading, isPaid, isPro, isTeam, signUp, signIn, signInWithGoogle, signOut }}>
+        <AuthContext.Provider value={{
+            user, subscription, loading,
+            isPaid, isPro, isTeam,
+            signUp, signIn, signInWithGoogle, signOut,
+        }}>
             {children}
         </AuthContext.Provider>
     );
 }
 
 export function useAuth() {
-    return useContext(AuthContext);
+    const ctx = useContext(AuthContext);
+    if (!ctx) throw new Error('useAuth debe usarse dentro de AuthProvider');
+    return ctx;
 }

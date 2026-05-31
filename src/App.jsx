@@ -12,8 +12,6 @@ import Pricing        from './pages/Pricing';
 import PaymentSuccess from './pages/PaymentSuccess';
 import MatchApp       from './MatchApp';
 
-import './index.css';
-
 export default function App() {
     return (
         <AuthProvider>

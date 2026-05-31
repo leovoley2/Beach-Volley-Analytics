@@ -169,14 +169,14 @@ export default function Pricing() {
                                         width: '100%', padding: '0.75rem', borderRadius: 'var(--radius)',
                                         fontFamily: 'var(--font)', fontSize: '0.9rem', fontWeight: 700,
                                         cursor: (isCurrentPlan || plan.id === 'free') ? 'default' : 'pointer',
-                                        transition: 'var(--trans)', border: 'none',
+                                        transition: 'var(--trans)',
+                                        border: isCurrentPlan || plan.featured ? 'none' : (!plan.featured && !isCurrentPlan) ? '1.5px solid var(--border)' : 'none',
                                         background: isCurrentPlan
                                             ? 'var(--bg-hover)'
                                             : plan.featured
                                                 ? 'var(--accent)'
                                                 : 'transparent',
                                         color: isCurrentPlan ? 'var(--text-muted)' : plan.featured ? 'white' : 'var(--text-secondary)',
-                                        border: (!plan.featured && !isCurrentPlan) ? '1.5px solid var(--border)' : 'none',
                                         opacity: isLoading ? 0.7 : 1,
                                         boxShadow: plan.featured && !isCurrentPlan ? '0 2px 12px rgba(249,115,22,0.3)' : 'none',
                                     }}
