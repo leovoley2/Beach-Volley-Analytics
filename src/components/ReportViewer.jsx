@@ -128,21 +128,27 @@ function computeStats(selectedMatch, filteredActions) {
     return playerStats;
 }
 
-function ReportViewer({ onGoToTracker }) {
-    const { matches, setCurrentMatch } = useMatches();
-    const [selectedMatchId, setSelectedMatchId] = useState('');
-    const [selectedSet, setSelectedSet] = useState(null);     // null = Todos los Sets
-    const [complexFilter, setComplexFilter] = useState(null);  // null | 'K1' | 'K2'
-    const [playerFilter, setPlayerFilter] = useState(null);    // null | playerId
-    const [attackFilter, setAttackFilter] = useState(null);    // null | 'Ataque Contundente' | 'Ataque Coloque' | 'Ataque 2 Toques'
+function ReportViewer({ onGoToTracker, isPaid = false, matchId = null }) {
+    const { matches, setCurrentMatch, currentMatch } = useMatches();
+    // Si se pasa matchId, pre-seleccionar ese partido automáticamente
+    const [selectedMatchId, setSelectedMatchId] = useState(matchId || '');
+    const [selectedSet, setSelectedSet] = useState(null);
+    const [complexFilter, setComplexFilter] = useState(null);
+    const [playerFilter, setPlayerFilter] = useState(null);
+    const [attackFilter, setAttackFilter] = useState(null);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
     const reportContentRef = useRef(null);
 
-    const selectedMatch = useMemo(() => {
-        return matches.find(m => m.id === selectedMatchId) || null;
-    }, [selectedMatchId, matches]);
+    // Cuando matchId cambia (navegación), actualizar selección
+    React.useEffect(() => {
+        if (matchId) setSelectedMatchId(matchId);
+    }, [matchId]);
 
-    // Reset set filter when match changes
+    const selectedMatch = useMemo(() => {
+        if (matchId && currentMatch?.id === matchId) return currentMatch;
+        return matches.find(m => m.id === selectedMatchId) || null;
+    }, [selectedMatchId, matches, matchId, currentMatch]);
+
     const handleMatchChange = (e) => {
         setSelectedMatchId(e.target.value);
         setSelectedSet(null);
@@ -257,9 +263,20 @@ function ReportViewer({ onGoToTracker }) {
                         <button onClick={handleGoToMatch} className="btn-go-match" title="Volver al partido para corregir acciones">
                             ✏️ Ir al Partido
                         </button>
-                        <button onClick={generatePdf} className="btn-primary" disabled={isGeneratingPdf}>
-                            {isGeneratingPdf ? 'Generando PDF...' : '📄 Descargar PDF'}
-                        </button>
+                        {isPaid ? (
+                            <button onClick={generatePdf} className="btn-primary" disabled={isGeneratingPdf}>
+                                {isGeneratingPdf ? 'Generando PDF...' : '📄 Descargar PDF'}
+                            </button>
+                        ) : (
+                            <button
+                                className="btn-primary"
+                                onClick={() => window.location.href = '/pricing'}
+                                title="Actualiza a Pro para exportar PDF"
+                                style={{ opacity: 0.85 }}
+                            >
+                                🔒 PDF — Plan Pro
+                            </button>
+                        )}
                     </div>
 
                     {/* Set filter tabs */}
