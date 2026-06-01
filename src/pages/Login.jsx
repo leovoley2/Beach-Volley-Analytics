@@ -1,14 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
-    const { signIn, signInWithGoogle } = useAuth();
+    const { signIn, signInWithGoogle, user } = useAuth();
     const navigate = useNavigate();
     const [email, setEmail]       = useState('');
     const [password, setPassword] = useState('');
     const [error, setError]       = useState('');
     const [loading, setLoading]   = useState(false);
+
+    // Navegar cuando el user quede establecido en AuthContext
+    useEffect(() => {
+        if (user) navigate('/dashboard', { replace: true });
+    }, [user, navigate]);
 
     async function handleSubmit(e) {
         e.preventDefault();
@@ -16,8 +21,17 @@ export default function Login() {
         setLoading(true);
         const { error } = await signIn(email, password);
         setLoading(false);
-        if (error) setError(error.message);
-        else navigate('/dashboard');
+        if (error) {
+            // Traducir los errores más comunes de Supabase al español
+            if (error.message.includes('Invalid login credentials')) {
+                setError('Correo o contraseña incorrectos. Verifica tus datos.');
+            } else if (error.message.includes('Email not confirmed')) {
+                setError('Debes confirmar tu correo antes de iniciar sesión.');
+            } else {
+                setError(error.message);
+            }
+        }
+        // Si no hay error, el useEffect de arriba navega cuando AuthContext actualiza el user
     }
 
     async function handleGoogle() {
@@ -51,18 +65,48 @@ export default function Login() {
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
                         <label>Correo electrónico</label>
-                        <input className="form-input" type="email" placeholder="tu@correo.com"
-                            value={email} onChange={e => setEmail(e.target.value)} required />
+                        <input
+                            className="form-input"
+                            type="email"
+                            placeholder="tu@correo.com"
+                            value={email}
+                            onChange={e => setEmail(e.target.value)}
+                            required
+                            autoComplete="email"
+                        />
                     </div>
                     <div className="form-group">
                         <label>Contraseña</label>
-                        <input className="form-input" type="password" placeholder="••••••••"
-                            value={password} onChange={e => setPassword(e.target.value)} required />
+                        <input
+                            className="form-input"
+                            type="password"
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={e => setPassword(e.target.value)}
+                            required
+                            autoComplete="current-password"
+                        />
                     </div>
-                    {error && <p style={{ color: 'var(--c-dn)', fontSize: '0.82rem', marginBottom: '0.75rem' }}>{error}</p>}
+
+                    {error && (
+                        <div style={{
+                            background: 'rgba(220,38,38,0.08)', border: '1px solid var(--c-dn)',
+                            borderRadius: 'var(--radius)', padding: '0.65rem 0.9rem',
+                            color: 'var(--c-dn)', fontSize: '0.82rem', marginBottom: '0.75rem',
+                        }}>
+                            {error}
+                        </div>
+                    )}
+
                     <button className="btn-auth" type="submit" disabled={loading}>
-                        {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+                        {loading ? (
+                            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                                <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span>
+                                Iniciando sesión...
+                            </span>
+                        ) : 'Iniciar sesión'}
                     </button>
+                    <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
                 </form>
 
                 <div className="auth-switch">

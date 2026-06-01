@@ -3,8 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Signup() {
-    const { signUp, signInWithGoogle } = useAuth();
+    const { signUp, signInWithGoogle, user } = useAuth();
     const navigate = useNavigate();
+
+    // Navegar cuando el user quede establecido (login automático tras signup)
+    React.useEffect(() => {
+        if (user) navigate('/dashboard', { replace: true });
+    }, [user, navigate]);
     const [fullName, setFullName] = useState('');
     const [email, setEmail]       = useState('');
     const [password, setPassword] = useState('');
