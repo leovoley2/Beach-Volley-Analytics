@@ -66,7 +66,7 @@ const SVG_WIDTH = 500, SVG_HEIGHT = 300, COURT_X_PADDING = 50, COURT_Y_PADDING =
 const COURT_WIDTH = SVG_WIDTH - 2 * COURT_X_PADDING, COURT_HEIGHT = SVG_HEIGHT - 2 * COURT_Y_PADDING;
 
 // --- Componente Principal ---
-function GameTracker() {
+function GameTracker({ onFinishMatch }) {
     const { currentMatch, updateMatch, endCurrentMatch } = useMatches();
     const [activePlayerId, setActivePlayerId] = useState(null);
     const [selectedSkill, setSelectedSkill] = useState(null);
@@ -517,7 +517,13 @@ function GameTracker() {
                 <div className="button-group">
                     <button onClick={handleUndo} disabled={isMatchOver}>↩ Deshacer</button>
                     <button onClick={handleFinishSet} disabled={isMatchOver}>Finalizar Set</button>
-                    <button onClick={endCurrentMatch}>Finalizar Partido</button>
+                    <button
+                        onClick={() => onFinishMatch ? onFinishMatch() : endCurrentMatch()}
+                        className="btn-primary"
+                        style={{ background: isMatchOver ? 'var(--c-pos)' : undefined }}
+                    >
+                        {isMatchOver ? '✓ Guardar y salir' : 'Finalizar Partido'}
+                    </button>
                 </div>
             </div>
         </div>

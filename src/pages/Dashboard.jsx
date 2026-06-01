@@ -112,30 +112,42 @@ export default function Dashboard() {
                 ) : (
                     <div className="match-list">
                         {matches.map(match => {
-                            const sets = match.sets || [];
-                            const scoreText = `${match.score?.own ?? 0} – ${match.score?.opponent ?? 0}`;
-                            const isScout = match.match_type === 'scouting';
+                            const scoreText   = `${match.score?.own ?? 0} – ${match.score?.opponent ?? 0}`;
+                            const isScout     = match.match_type === 'scouting';
+                            const isCompleted = match.status === 'completed';
+                            // Bug fix: parsear fecha con T00:00:00 para evitar off-by-one de timezone UTC
+                            const dateStr = match.match_date
+                                ? new Date(match.match_date + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
+                                : '—';
+                            // Partidos en progreso van al tracker, completados van a tendencias
+                            const matchUrl = isCompleted
+                                ? `/match/${match.id}`
+                                : `/match/${match.id}/tracker`;
+
                             return (
-                                <div key={match.id} className="match-item" onClick={() => navigate(`/match/${match.id}`)}>
+                                <div key={match.id} className="match-item" onClick={() => navigate(matchUrl)}>
                                     <div className="match-icon">{isScout ? '🕵️' : '📊'}</div>
                                     <div className="match-info">
                                         <div className="match-teams">
                                             {match.own_team_name} vs {match.opponent_team_name}
                                         </div>
                                         <div className="match-meta">
-                                            <span>📅 {new Date(match.match_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                            <span>📅 {dateStr}</span>
                                             {match.location && <span>📍 {match.location}</span>}
                                             {match.tournament && <span>🏆 {match.tournament}</span>}
-                                            <span style={{ color: STATUS_COLOR[match.status], fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.06em', border: `1px solid ${STATUS_COLOR[match.status]}`, padding: '0.1rem 0.5rem', borderRadius: '50px', background: `${STATUS_COLOR[match.status]}15` }}>
-                                                {STATUS_LABEL[match.status]}
+                                            <span style={{ color: STATUS_COLOR[match.status] || '#7a8899', fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.06em', border: `1px solid ${STATUS_COLOR[match.status] || '#7a8899'}`, padding: '0.1rem 0.5rem', borderRadius: '50px', background: `${STATUS_COLOR[match.status] || '#7a8899'}15` }}>
+                                                {STATUS_LABEL[match.status] || match.status}
                                             </span>
                                         </div>
                                     </div>
-                                    <div className="match-score" style={{ color: match.status === 'in_progress' ? 'var(--text-secondary)' : 'var(--accent)' }}>
+                                    <div className="match-score" style={{ color: isCompleted ? 'var(--accent)' : 'var(--text-secondary)' }}>
                                         {scoreText}
                                     </div>
                                     <div className="match-actions">
-                                        <div className="btn-icon" title="Ver informe" onClick={e => { e.stopPropagation(); navigate(`/match/${match.id}`); }}>📊</div>
+                                        <div className="btn-icon" title={isCompleted ? 'Ver tendencias' : 'Continuar partido'}
+                                            onClick={e => { e.stopPropagation(); navigate(matchUrl); }}>
+                                            {isCompleted ? '📊' : '▶'}
+                                        </div>
                                         <div
                                             className="btn-icon danger"
                                             title="Eliminar"

@@ -11,7 +11,7 @@ export function useMatchesDB() {
     const [error, setError]       = useState(null);
 
     const fetchMatches = useCallback(async () => {
-        if (!user) return;
+        if (!user) { setLoading(false); return; }
         setLoading(true);
         const { data, error } = await supabase
             .from('matches')

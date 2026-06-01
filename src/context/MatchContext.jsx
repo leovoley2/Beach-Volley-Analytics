@@ -1,57 +1,31 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useContext } from 'react';
 
+// MatchContext ahora es solo memoria en sesión (no localStorage)
+// Los partidos se persisten en Supabase via useMatchesDB
 const MatchContext = createContext();
 
-export const useMatches = () => {
-    return useContext(MatchContext);
-};
+export const useMatches = () => useContext(MatchContext);
 
 export const MatchProvider = ({ children }) => {
-    const [matches, setMatches] = useState(() => {
-        try {
-            const savedMatches = localStorage.getItem('beachVolleyMatches');
-            return savedMatches ? JSON.parse(savedMatches) : [];
-        } catch (error) {
-            console.error("Error loading matches from localStorage", error);
-            return [];
-        }
-    });
-
     const [currentMatch, setCurrentMatch] = useState(null);
 
-    useEffect(() => {
-        try {
-            localStorage.setItem('beachVolleyMatches', JSON.stringify(matches));
-        } catch (error) {
-            console.error("Error saving matches to localStorage", error);
-        }
-    }, [matches]);
-
-    const addMatch = (matchData) => {
-        const newMatch = { ...matchData, id: `match_${Date.now()}` };
-        setMatches(prevMatches => [...prevMatches, newMatch]);
-        setCurrentMatch(newMatch);
-        return newMatch;
-    };
-
+    // updateMatch: actualiza el partido actual en memoria
     const updateMatch = (updatedMatch) => {
-        setMatches(prevMatches =>
-            prevMatches.map(match => (match.id === updatedMatch.id ? updatedMatch : match))
-        );
         setCurrentMatch(updatedMatch);
     };
-    
+
     const endCurrentMatch = () => {
         setCurrentMatch(null);
     };
 
     const value = {
-        matches,
         currentMatch,
-        addMatch,
-        updateMatch,
         setCurrentMatch,
-        endCurrentMatch
+        updateMatch,
+        endCurrentMatch,
+        // matches array vacío — compatibilidad con ReportViewer
+        matches: currentMatch ? [currentMatch] : [],
+        addMatch: (m) => setCurrentMatch(m),
     };
 
     return (
