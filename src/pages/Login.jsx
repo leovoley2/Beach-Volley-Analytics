@@ -68,6 +68,11 @@ export default function Login() {
                 <div className="auth-switch">
                     ¿No tienes cuenta? <Link to="/signup">Crear cuenta gratis</Link>
                 </div>
+                <div className="auth-switch" style={{ marginTop: '0.5rem' }}>
+                    <Link to="/forgot-password" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                        ¿Olvidaste tu contraseña?
+                    </Link>
+                </div>
             </div>
         </div>
     );

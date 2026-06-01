@@ -6,6 +6,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 import Login          from './pages/Login';
 import Signup         from './pages/Signup';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword  from './pages/ResetPassword';
 import Dashboard      from './pages/Dashboard';
 import NewMatch       from './pages/NewMatch';
 import Pricing        from './pages/Pricing';
@@ -18,8 +20,10 @@ export default function App() {
             <BrowserRouter>
                 <Routes>
                     {/* Rutas públicas */}
-                    <Route path="/login"  element={<Login />} />
-                    <Route path="/signup" element={<Signup />} />
+                    <Route path="/login"           element={<Login />} />
+                    <Route path="/signup"          element={<Signup />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/reset-password"  element={<ResetPassword />} />
 
                     {/* Rutas protegidas */}
                     <Route path="/dashboard"      element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
