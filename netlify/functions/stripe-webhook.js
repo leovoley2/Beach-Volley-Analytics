@@ -95,6 +95,6 @@ exports.handler = async (event) => {
 
     } catch (err) {
         console.error('Webhook handler error:', err);
-        return { statusCode: 500, body: err.message };
+        return { statusCode: 500, body: JSON.stringify({ error: 'Internal server error' }) };
     }
 };

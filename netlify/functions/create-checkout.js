@@ -1,6 +1,11 @@
 const Stripe = require('stripe');
+const { createClient } = require('@supabase/supabase-js');
 
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+const supabaseAdmin = createClient(
+    process.env.VITE_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 const PLANS = {
     pro:  process.env.STRIPE_PRO_PRICE_ID,
@@ -12,8 +17,17 @@ exports.handler = async (event) => {
         return { statusCode: 405, body: 'Method Not Allowed' };
     }
 
+    // Verificar JWT — el userId del body debe coincidir con el token
+    const token = event.headers.authorization?.replace('Bearer ', '');
+    if (!token) return { statusCode: 401, body: JSON.stringify({ error: 'Unauthorized' }) };
+
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !user) return { statusCode: 401, body: JSON.stringify({ error: 'Unauthorized' }) };
+
     try {
         const { plan, userId, userEmail } = JSON.parse(event.body);
+
+        if (user.id !== userId) return { statusCode: 403, body: JSON.stringify({ error: 'Forbidden' }) };
 
         if (!PLANS[plan]) {
             return { statusCode: 400, body: JSON.stringify({ error: 'Plan inválido' }) };
