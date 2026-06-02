@@ -16,7 +16,6 @@ export default function MatchApp() {
     async function handleSignOut() {
         endCurrentMatch();
         await signOut();
-        navigate('/login', { replace: true });
     }
     const { currentMatch, setCurrentMatch, updateMatch, endCurrentMatch } = useMatches();
     const { updateMatch: updateMatchDB } = useMatchesDB();

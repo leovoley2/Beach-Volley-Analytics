@@ -62,7 +62,6 @@ export default function Pricing() {
 
     async function handleSignOut() {
         await signOut();
-        navigate('/login', { replace: true });
     }
     const [loadingPlan, setLoadingPlan] = useState(null);
     const [error, setError] = useState('');

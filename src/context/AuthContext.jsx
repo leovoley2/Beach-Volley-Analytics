@@ -119,11 +119,12 @@ export function AuthProvider({ children }) {
         } catch (err) {
             console.error('signOut error:', err);
         } finally {
-            // Limpiar estado local aunque falle la llamada a Supabase
             setUser(null);
             setSubscription(null);
             setLoading(false);
         }
+        // Forzar recarga completa del navegador para limpiar todo estado
+        window.location.replace('/login');
     }
 
     const isPro  = subscription?.plan === 'pro'  && subscription?.status === 'active';
