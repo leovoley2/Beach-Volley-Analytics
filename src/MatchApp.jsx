@@ -12,6 +12,12 @@ export default function MatchApp() {
     const { pathname }   = useLocation();
     const navigate       = useNavigate();
     const { user, isPaid, signOut } = useAuth();
+
+    async function handleSignOut() {
+        endCurrentMatch();
+        await signOut();
+        navigate('/login', { replace: true });
+    }
     const { currentMatch, setCurrentMatch, updateMatch, endCurrentMatch } = useMatches();
     const { updateMatch: updateMatchDB } = useMatchesDB();
     const [loadError, setLoadError]   = useState(null);
@@ -138,6 +144,9 @@ export default function MatchApp() {
                         className={view === 'report' ? 'nav-active' : ''}
                     >
                         Tendencias
+                    </button>
+                    <button onClick={handleSignOut} style={{ marginLeft: '0.5rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                        Salir
                     </button>
                 </nav>
             </header>

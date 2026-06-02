@@ -10,6 +10,11 @@ export default function Dashboard() {
     const { user, subscription, isPaid, signOut } = useAuth();
     const { matches, loading, monthlyUsed, monthlyLimit, canCreateMatch, deleteMatch } = useMatchesDB();
     const navigate = useNavigate();
+
+    async function handleSignOut() {
+        await signOut();
+        navigate('/login', { replace: true });
+    }
     const [deletingId, setDeletingId] = useState(null);
     const [confirmId, setConfirmId]   = useState(null);
 
@@ -37,7 +42,7 @@ export default function Dashboard() {
                 <div className="topbar-right">
                     <span className="plan-chip">{subscription?.plan?.toUpperCase() || 'FREE'}</span>
                     <div className="avatar" title={displayName}>{initials}</div>
-                    <button onClick={signOut} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.8rem' }}>Salir</button>
+                    <button onClick={handleSignOut} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.8rem' }}>Salir</button>
                 </div>
             </div>
 

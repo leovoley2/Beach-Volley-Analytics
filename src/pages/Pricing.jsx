@@ -59,6 +59,11 @@ const PLANS = [
 export default function Pricing() {
     const { user, subscription, isPaid, signOut } = useAuth();
     const navigate = useNavigate();
+
+    async function handleSignOut() {
+        await signOut();
+        navigate('/login', { replace: true });
+    }
     const [loadingPlan, setLoadingPlan] = useState(null);
     const [error, setError] = useState('');
 
@@ -104,7 +109,7 @@ export default function Pricing() {
                 <div className="topbar-right">
                     <span className="plan-chip">{currentPlan.toUpperCase()}</span>
                     <div className="avatar">{initials}</div>
-                    <button onClick={signOut} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.8rem' }}>Salir</button>
+                    <button onClick={handleSignOut} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.8rem' }}>Salir</button>
                 </div>
             </div>
 

@@ -114,7 +114,16 @@ export function AuthProvider({ children }) {
     }
 
     async function signOut() {
-        await supabase.auth.signOut();
+        try {
+            await supabase.auth.signOut();
+        } catch (err) {
+            console.error('signOut error:', err);
+        } finally {
+            // Limpiar estado local aunque falle la llamada a Supabase
+            setUser(null);
+            setSubscription(null);
+            setLoading(false);
+        }
     }
 
     const isPro  = subscription?.plan === 'pro'  && subscription?.status === 'active';
