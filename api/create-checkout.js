@@ -1,18 +1,28 @@
-const Stripe = require('stripe');
-const { createClient } = require('@supabase/supabase-js');
+import { MercadoPagoConfig, PreApproval } from 'mercadopago';
+import { createClient } from '@supabase/supabase-js';
 
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+const mpClient = new MercadoPagoConfig({
+    accessToken: process.env.MP_ACCESS_TOKEN,
+});
 const supabaseAdmin = createClient(
     process.env.VITE_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const PLANS = {
-    pro:  process.env.STRIPE_PRO_PRICE_ID,
-    team: process.env.STRIPE_TEAM_PRICE_ID,
+const PLAN_CONFIG = {
+    pro: {
+        amount:   9,
+        currency: 'USD',
+        name:     'Plan Pro – Beach Volley Analytics',
+    },
+    team: {
+        amount:   29,
+        currency: 'USD',
+        name:     'Plan Team – Beach Volley Analytics',
+    },
 };
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
@@ -29,29 +39,33 @@ module.exports = async function handler(req, res) {
 
         if (user.id !== userId) return res.status(403).json({ error: 'Forbidden' });
 
-        if (!PLANS[plan]) {
-            return res.status(400).json({ error: 'Plan inválido' });
-        }
+        const planConfig = PLAN_CONFIG[plan];
+        if (!planConfig) return res.status(400).json({ error: 'Plan inválido' });
 
         const baseUrl = process.env.VITE_APP_URL || `https://${process.env.VERCEL_URL}`;
 
-        const session = await stripe.checkout.sessions.create({
-            mode: 'subscription',
-            payment_method_types: ['card'],
-            customer_email: userEmail,
-            line_items: [{ price: PLANS[plan], quantity: 1 }],
-            success_url: `${baseUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url:  `${baseUrl}/pricing`,
-            metadata: { userId, plan },
-            subscription_data: {
-                metadata: { userId, plan },
+        const preApproval = new PreApproval(mpClient);
+        const response = await preApproval.create({
+            body: {
+                reason:      planConfig.name,
+                payer_email: userEmail,
+                back_url:    `${baseUrl}/payment-success`,
+                auto_recurring: {
+                    frequency:          1,
+                    frequency_type:     'months',
+                    transaction_amount: planConfig.amount,
+                    currency_id:        planConfig.currency,
+                },
+                // Referencia para identificar al usuario en el webhook
+                external_reference: `${userId}|${plan}`,
+                status: 'pending',
             },
         });
 
-        return res.status(200).json({ url: session.url });
+        return res.status(200).json({ url: response.init_point });
 
     } catch (err) {
         console.error('create-checkout error:', err);
-        return res.status(500).json({ error: err.message });
+        return res.status(500).json({ error: 'Internal server error' });
     }
-};
+}

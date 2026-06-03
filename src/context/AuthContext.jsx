@@ -83,12 +83,20 @@ export function AuthProvider({ children }) {
                 console.error('Error fetching subscription:', error.message);
             }
             setSubscription(data ?? { plan: 'free', status: 'active' });
+            return data;
         } catch (err) {
             console.error('fetchSubscription error:', err);
             setSubscription({ plan: 'free', status: 'active' });
+            return null;
         } finally {
             setLoading(false);
         }
+    }
+
+    // Refresca la suscripción desde la BD — útil después de un pago
+    async function refreshSubscription() {
+        if (!user) return null;
+        return fetchSubscription(user.id);
     }
 
     async function signUp(email, password, fullName) {
@@ -136,6 +144,7 @@ export function AuthProvider({ children }) {
             user, subscription, loading,
             isPaid, isPro, isTeam,
             signUp, signIn, signInWithGoogle, signOut,
+            refreshSubscription,
         }}>
             {children}
         </AuthContext.Provider>
