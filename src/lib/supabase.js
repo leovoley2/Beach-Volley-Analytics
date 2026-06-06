@@ -4,32 +4,21 @@ const supabaseUrl  = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey  = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 /**
- * Lock de auth con timeout. El lock por defecto de Supabase (navigator.locks)
- * espera INDEFINIDAMENTE: si un tab queda atascado reteniendo el lock, cualquier
- * otro tab cuelga en getSession() para siempre (la app no carga y bota a login).
+ * Lock de auth NO-OP (ejecuta la operación directamente, sin navigator.locks).
  *
- * Esta versión intenta el lock cross-tab pero, si no lo obtiene en 3s, continúa
- * SIN lock en vez de colgarse. El único riesgo es un refresh de token concurrente
- * entre tabs (poco frecuente e inofensivo), a cambio de que la app nunca se bloquee.
+ * El lock por defecto de Supabase usa navigator.locks para serializar refresh de
+ * token entre pestañas, pero en la práctica se quedaba RETENIDO sin liberarse:
+ * getSession() y cualquier query del cliente (insert/update) se colgaban para
+ * siempre, mientras que las mismas llamadas a la API REST (sin lock) funcionaban.
+ *
+ * Sin lock, el cliente se comporta igual que en navegadores sin navigator.locks
+ * (modo soportado por el SDK). Único riesgo: dos pestañas podrían refrescar el
+ * token a la vez (poco frecuente; el SDK lo maneja). A cambio, nunca hay deadlock.
  */
-async function lockWithTimeout(name, _acquireTimeout, fn) {
-    if (typeof navigator === 'undefined' || !navigator.locks?.request) {
-        return fn();
-    }
-    try {
-        return await navigator.locks.request(
-            name,
-            { mode: 'exclusive', signal: AbortSignal.timeout(3000) },
-            async () => fn()
-        );
-    } catch {
-        // Timeout esperando el lock (otro tab lo retiene) → ejecutar igualmente.
-        return fn();
-    }
-}
+const noopLock = (_name, _acquireTimeout, fn) => fn();
 
 export const supabase = createClient(supabaseUrl, supabaseKey, {
     auth: {
-        lock: lockWithTimeout,
+        lock: noopLock,
     },
 });
