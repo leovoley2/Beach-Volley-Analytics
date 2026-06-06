@@ -8,6 +8,32 @@ export function AuthProvider({ children }) {
     const [subscription, setSubscription] = useState(null);
     const [loading, setLoading]           = useState(true);
 
+    // Definida ANTES del useEffect que la usa como dependencia: si se declara después,
+    // el array [fetchSubscription] la lee en zona muerta temporal (TDZ) y la app crashea
+    // en producción con "Cannot access ... before initialization".
+    const fetchSubscription = useCallback(async (userId) => {
+        try {
+            const { data, error } = await supabase
+                .from('subscriptions')
+                .select('*')
+                .eq('user_id', userId)
+                .single();
+
+            if (error && error.code !== 'PGRST116') {
+                // PGRST116 = no rows found (usuario nuevo aún sin fila)
+                console.error('Error fetching subscription:', error.message);
+            }
+            setSubscription(data ?? { plan: 'free', status: 'active' });
+            return data;
+        } catch (err) {
+            console.error('fetchSubscription error:', err);
+            setSubscription({ plan: 'free', status: 'active' });
+            return null;
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
         let mounted = true;
 
@@ -69,29 +95,6 @@ export function AuthProvider({ children }) {
             authListener?.unsubscribe();
         };
     }, [fetchSubscription]);
-
-    const fetchSubscription = useCallback(async (userId) => {
-        try {
-            const { data, error } = await supabase
-                .from('subscriptions')
-                .select('*')
-                .eq('user_id', userId)
-                .single();
-
-            if (error && error.code !== 'PGRST116') {
-                // PGRST116 = no rows found (usuario nuevo aún sin fila)
-                console.error('Error fetching subscription:', error.message);
-            }
-            setSubscription(data ?? { plan: 'free', status: 'active' });
-            return data;
-        } catch (err) {
-            console.error('fetchSubscription error:', err);
-            setSubscription({ plan: 'free', status: 'active' });
-            return null;
-        } finally {
-            setLoading(false);
-        }
-    }, []);
 
     // Refresca la suscripción desde la BD — útil después de un pago.
     // Memoizada para no reiniciar efectos que la usan como dependencia (ej. PaymentSuccess).
