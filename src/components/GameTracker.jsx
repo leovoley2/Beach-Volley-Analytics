@@ -65,6 +65,38 @@ const OUTCOME_DESCRIPTIONS = {
 const SVG_WIDTH = 500, SVG_HEIGHT = 300, COURT_X_PADDING = 50, COURT_Y_PADDING = 50;
 const COURT_WIDTH = SVG_WIDTH - 2 * COURT_X_PADDING, COURT_HEIGHT = SVG_HEIGHT - 2 * COURT_Y_PADDING;
 
+// Fundamentos que dan punto directo al ejecutar con Doble Positivo.
+const DIRECT_POSITIVE_SKILLS = ['Saque', 'Ataque', 'Bloqueo'];
+
+/**
+ * Única fuente de verdad del marcador: el score de cada set se DERIVA del log de acciones.
+ * - Acciones de juego: Doble Positivo (Saque/Ataque/Bloqueo) y Doble Negativo (cualquiera) suman.
+ * - Acciones de ajuste manual ({ type:'score_adjust' }): suman/restan el delta indicado (sin bajar de 0).
+ * Reproducir el historial en orden hace que el marcador sea siempre consistente con deshacer/rehacer.
+ */
+function computeSetScores(actions, numSets, ownPlayerIds) {
+    const scores = Array.from({ length: Math.max(numSets, 1) }, () => ({ own: 0, opponent: 0 }));
+    for (const a of actions || []) {
+        const si = a.setIndex ?? 0;
+        if (si < 0 || si >= scores.length) continue;
+
+        if (a.type === 'score_adjust') {
+            scores[si][a.team] = Math.max(0, scores[si][a.team] + a.delta);
+            continue;
+        }
+
+        const isOwn = ownPlayerIds.includes(a.playerId);
+        const baseSkill = a.skill?.startsWith('Ataque') ? 'Ataque' : a.skill;
+        if (DIRECT_POSITIVE_SKILLS.includes(baseSkill) && a.outcome === 'Doble Positivo') {
+            if (isOwn) { scores[si].own++; } else { scores[si].opponent++; }
+        }
+        if (a.outcome === 'Doble Negativo') {
+            if (isOwn) { scores[si].opponent++; } else { scores[si].own++; }
+        }
+    }
+    return scores;
+}
+
 // --- Componente Principal ---
 function GameTracker({ onFinishMatch }) {
     const { currentMatch, updateMatch, endCurrentMatch } = useMatches();
@@ -79,7 +111,12 @@ function GameTracker({ onFinishMatch }) {
     const [attackStartPos, setAttackStartPos] = useState(null);
 
     const currentSetIndex = currentMatch ? currentMatch.sets.length - 1 : 0;
-    const currentSetScore = currentMatch ? currentMatch.sets[currentSetIndex] : { own: 0, opponent: 0 };
+    // El marcador del set actual se deriva del log de acciones (única fuente de verdad).
+    const ownPlayerIds = currentMatch ? currentMatch.ownPlayers.map(p => p.id) : [];
+    const derivedSets = currentMatch
+        ? computeSetScores(currentMatch.actions, currentMatch.sets.length, ownPlayerIds)
+        : [{ own: 0, opponent: 0 }];
+    const currentSetScore = derivedSets[currentSetIndex] || { own: 0, opponent: 0 };
 
     // Derivado del estado real del partido: no depende de estado local para evitar desfases
     const isMatchOver = currentMatch
@@ -89,25 +126,6 @@ function GameTracker({ onFinishMatch }) {
     if (!currentMatch) {
         return <div className="card">No hay ningún partido activo. Ve a "Nuevo Partido" para comenzar.</div>;
     }
-
-    // --- Lógica de Puntuación centralizada ---
-    const calculateScore = (skill, outcome, isOwnPlayer, setScore) => {
-        const newScore = { ...setScore };
-        const baseSkill = skill.startsWith('Ataque') ? 'Ataque' : skill;
-
-        // Doble Positivo: punto para el equipo que ejecuta (solo en Saque, Ataque, Bloqueo)
-        const DIRECT_POSITIVE_SKILLS = ['Saque', 'Ataque', 'Bloqueo'];
-        if (DIRECT_POSITIVE_SKILLS.includes(baseSkill) && outcome === 'Doble Positivo') {
-            if (isOwnPlayer) { newScore.own++; } else { newScore.opponent++; }
-        }
-
-        // Doble Negativo: punto siempre para el equipo RIVAL (cualquier fundamento)
-        if (outcome === 'Doble Negativo') {
-            if (isOwnPlayer) { newScore.opponent++; } else { newScore.own++; }
-        }
-
-        return newScore;
-    };
 
     /**
      * Registra una acción con posición opcional de inicio y fin (para ataques).
@@ -160,13 +178,12 @@ function GameTracker({ onFinishMatch }) {
             setCurrentComplex(complex);
         }
 
-        const isOwnPlayer = currentMatch.ownPlayers.some(p => p.id === activePlayerId);
-        const newSets = [...currentMatch.sets];
-        newSets[currentSetIndex] = calculateScore(newAction.skill, selectedOutcome, isOwnPlayer, newSets[currentSetIndex]);
+        const newActions = [...(currentMatch.actions || []), newAction];
+        const newSets = computeSetScores(newActions, currentMatch.sets.length, ownPlayerIds);
 
         updateMatch({
             ...currentMatch,
-            actions: [...(currentMatch.actions || []), newAction],
+            actions: newActions,
             sets: newSets,
         });
 
@@ -206,40 +223,26 @@ function GameTracker({ onFinishMatch }) {
         }
     };
 
+    // El ajuste manual se registra como una acción en el log → el marcador se deriva de ahí.
+    // Así el ajuste sobrevive a recargas y se puede deshacer como cualquier otra acción.
     const handleScoreChange = (team, delta) => {
-        const newSets = [...currentMatch.sets];
-        const newCurrentSetScore = { ...newSets[currentSetIndex] };
-        newCurrentSetScore[team] = Math.max(0, newCurrentSetScore[team] + delta);
-        newSets[currentSetIndex] = newCurrentSetScore;
-        updateMatch({ ...currentMatch, sets: newSets });
+        const adjustAction = {
+            type: 'score_adjust',
+            team,
+            delta,
+            setIndex: currentSetIndex,
+            timestamp: new Date().toISOString(),
+        };
+        const newActions = [...(currentMatch.actions || []), adjustAction];
+        const newSets = computeSetScores(newActions, currentMatch.sets.length, ownPlayerIds);
+        updateMatch({ ...currentMatch, actions: newActions, sets: newSets });
     };
 
+    // Deshacer = quitar la última acción (de juego o de ajuste) y recalcular el marcador.
     const handleUndo = () => {
         if (!currentMatch.actions || currentMatch.actions.length === 0) return;
-
-        const lastAction = currentMatch.actions.slice(-1)[0];
         const newActions = currentMatch.actions.slice(0, -1);
-        const wasOwnPlayer = currentMatch.ownPlayers.some(p => p.id === lastAction.playerId);
-
-        // BUG FIX: revert the score in the set where the action was actually recorded
-        const actionSetIndex = lastAction.setIndex ?? currentSetIndex;
-        const newSets = [...currentMatch.sets];
-        const prevScore = { ...newSets[actionSetIndex] };
-        const baseSkill = lastAction.skill.startsWith('Ataque') ? 'Ataque' : lastAction.skill;
-        const DIRECT_POSITIVE_SKILLS = ['Saque', 'Ataque', 'Bloqueo'];
-
-        // Revertir Doble Positivo
-        if (DIRECT_POSITIVE_SKILLS.includes(baseSkill) && lastAction.outcome === 'Doble Positivo') {
-            if (wasOwnPlayer) { prevScore.own = Math.max(0, prevScore.own - 1); }
-            else { prevScore.opponent = Math.max(0, prevScore.opponent - 1); }
-        }
-        // Revertir Doble Negativo (cualquier fundamento)
-        if (lastAction.outcome === 'Doble Negativo') {
-            if (wasOwnPlayer) { prevScore.opponent = Math.max(0, prevScore.opponent - 1); }
-            else { prevScore.own = Math.max(0, prevScore.own - 1); }
-        }
-
-        newSets[actionSetIndex] = prevScore;
+        const newSets = computeSetScores(newActions, currentMatch.sets.length, ownPlayerIds);
         updateMatch({ ...currentMatch, actions: newActions, sets: newSets });
     };
 
@@ -276,7 +279,8 @@ function GameTracker({ onFinishMatch }) {
             updateMatch({ ...currentMatch, score: newScore, status: 'completed' });
             alert(`¡Partido finalizado! Ganador: ${ownWinsMatch ? currentMatch.ownTeamName : currentMatch.opponentTeamName}`);
         } else {
-            const newSets = [...currentMatch.sets, { own: 0, opponent: 0 }];
+            // Crece el nº de sets en 1; el marcador del set nuevo (0-0) sale de recalcular el log.
+            const newSets = computeSetScores(currentMatch.actions, currentMatch.sets.length + 1, ownPlayerIds);
             updateMatch({ ...currentMatch, score: newScore, sets: newSets });
         }
     };

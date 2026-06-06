@@ -190,7 +190,8 @@ function ReportViewer({ onGoToTracker, isPaid = false, matchId = null }) {
     // Actions filtered by set + complex + player (used for stats, charts, and court map)
     const filteredActions = useMemo(() => {
         if (!selectedMatch) return [];
-        let all = selectedMatch.actions || [];
+        // Excluir acciones de ajuste manual del marcador (no son acciones de juego).
+        let all = (selectedMatch.actions || []).filter(a => a.skill);
         if (selectedSet !== null) all = all.filter(a => a.setIndex === selectedSet);
         if (complexFilter !== null) all = all.filter(a => a.complex === complexFilter);
         if (playerFilter !== null) all = all.filter(a => a.playerId === playerFilter);
@@ -402,7 +403,7 @@ function ReportViewer({ onGoToTracker, isPaid = false, matchId = null }) {
                                 </thead>
                                 <tbody>
                                     {selectedMatch.sets.map((set, index) => {
-                                        const setActions = (selectedMatch.actions || []).filter(a => a.setIndex === index);
+                                        const setActions = (selectedMatch.actions || []).filter(a => a.skill && a.setIndex === index);
                                         const isActive = selectedSet === index;
                                         return (
                                             <tr
@@ -480,7 +481,7 @@ function ReportViewer({ onGoToTracker, isPaid = false, matchId = null }) {
                                 /* All sets side by side, each respecting player filter */
                                 <div className="courts-grid">
                                     {selectedMatch.sets.map((_, i) => {
-                                        let setActions = (selectedMatch.actions || []).filter(a => a.setIndex === i);
+                                        let setActions = (selectedMatch.actions || []).filter(a => a.skill && a.setIndex === i);
                                         if (complexFilter !== null) setActions = setActions.filter(a => a.complex === complexFilter);
                                         if (playerFilter !== null) setActions = setActions.filter(a => a.playerId === playerFilter);
                                         if (attackFilter !== null) setActions = setActions.filter(a => a.skill === attackFilter);

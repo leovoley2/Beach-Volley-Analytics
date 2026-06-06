@@ -30,8 +30,10 @@ const SCORING_SKILLS = ['Saque', 'Ataque Contundente', 'Ataque Coloque', 'Ataque
  * A new rally starts at the beginning and after every scoring action.
  * Returns an array of rally objects: { rallyNum, score, actions[] }
  */
-function buildRallies(actions) {
-    if (!actions || actions.length === 0) return [];
+function buildRallies(rawActions) {
+    // Ignorar ajustes manuales del marcador (no son acciones de juego).
+    const actions = (rawActions || []).filter(a => a.skill);
+    if (actions.length === 0) return [];
     let rallyNum = 1;
     const rallies = [];
     let current = { rallyNum, actions: [] };

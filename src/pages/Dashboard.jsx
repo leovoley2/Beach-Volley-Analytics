@@ -66,7 +66,7 @@ export default function Dashboard() {
                     <div className="stat-card">
                         <div className="stat-label">Acciones totales</div>
                         <div className="stat-value">
-                            {matches.reduce((sum, m) => sum + (m.actions?.length || 0), 0)}
+                            {matches.reduce((sum, m) => sum + (m.actions?.filter(a => a.skill).length || 0), 0)}
                         </div>
                         <div className="stat-sub">en todos los partidos</div>
                     </div>
