@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useMatches } from '../context/MatchContext';
 
 // --- Constantes del Componente ---
@@ -77,7 +77,6 @@ function GameTracker({ onFinishMatch }) {
 
     // Estado para el marcado en dos fases del ataque
     const [attackStartPos, setAttackStartPos] = useState(null);
-    const [attackPhase, setAttackPhase] = useState(null); // 'start' | 'end' | null
 
     const currentSetIndex = currentMatch ? currentMatch.sets.length - 1 : 0;
     const currentSetScore = currentMatch ? currentMatch.sets[currentSetIndex] : { own: 0, opponent: 0 };
@@ -179,7 +178,6 @@ function GameTracker({ onFinishMatch }) {
         setAttackType(null);
         setSelectedOutcome(null);
         setAttackStartPos(null);
-        setAttackPhase(null);
     };
 
     const handleCourtClick = (e) => {
@@ -202,7 +200,6 @@ function GameTracker({ onFinishMatch }) {
         if (!attackStartPos) {
             // Fase 1: marcar inicio
             setAttackStartPos({ x, y });
-            setAttackPhase('end');
         } else {
             // Fase 2: marcar fin y registrar
             registerAction(attackStartPos, { x, y });
@@ -274,7 +271,9 @@ function GameTracker({ onFinishMatch }) {
         const opponentWinsMatch = newScore.opponent === currentMatch.setsToWin;
 
         if (ownWinsMatch || opponentWinsMatch) {
-            updateMatch({ ...currentMatch, score: newScore });
+            // Marcar 'completed' en memoria: el efecto de sync de MatchApp lo persiste en BD.
+            // Así el partido no queda eternamente 'in_progress' si el usuario cierra la pestaña.
+            updateMatch({ ...currentMatch, score: newScore, status: 'completed' });
             alert(`¡Partido finalizado! Ganador: ${ownWinsMatch ? currentMatch.ownTeamName : currentMatch.opponentTeamName}`);
         } else {
             const newSets = [...currentMatch.sets, { own: 0, opponent: 0 }];
@@ -500,7 +499,7 @@ function GameTracker({ onFinishMatch }) {
                         {attackStartPos && (
                             <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
                                 <button
-                                    onClick={() => { setAttackStartPos(null); setAttackPhase(null); }}
+                                    onClick={() => setAttackStartPos(null)}
                                     style={{ fontSize: '0.85rem' }}
                                 >
                                     ✕ Cancelar inicio y volver a marcar

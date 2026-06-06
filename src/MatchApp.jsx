@@ -11,14 +11,15 @@ export default function MatchApp() {
     const { matchId }    = useParams();
     const { pathname }   = useLocation();
     const navigate       = useNavigate();
-    const { user, isPaid, signOut } = useAuth();
+    const { isPaid, signOut } = useAuth();
+    const { currentMatch, setCurrentMatch, endCurrentMatch } = useMatches();
+    // autoFetch:false → este hook solo se usa para persistir; evita un SELECT innecesario.
+    const { updateMatch: updateMatchDB } = useMatchesDB({ autoFetch: false });
 
     async function handleSignOut() {
         endCurrentMatch();
         await signOut();
     }
-    const { currentMatch, setCurrentMatch, updateMatch, endCurrentMatch } = useMatches();
-    const { updateMatch: updateMatchDB } = useMatchesDB();
     const [loadError, setLoadError]   = useState(null);
     const [loadingMatch, setLoadingMatch] = useState(false);
 
@@ -65,12 +66,8 @@ export default function MatchApp() {
         }
 
         loadMatch();
-
-        // Limpiar al salir
-        return () => {
-            // No limpiar aquí para no perder datos al cambiar entre tracker/report
-        };
-    }, [matchId]);
+        // No limpiamos al desmontar para no perder datos al cambiar entre tracker/report.
+    }, [matchId, currentMatch?.id, setCurrentMatch]);
 
     // Sincronizar cambios del tracker → Supabase (debounce 1.5s)
     useEffect(() => {
@@ -86,7 +83,7 @@ export default function MatchApp() {
         }, 1500);
 
         return () => clearTimeout(timeout);
-    }, [currentMatch?.actions, currentMatch?.sets, currentMatch?.score]);
+    }, [currentMatch, matchId, updateMatchDB]);
 
     async function handleFinishMatch() {
         // Guardar estado final en Supabase como completado

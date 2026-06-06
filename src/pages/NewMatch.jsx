@@ -5,14 +5,13 @@ import { useMatchesDB } from '../hooks/useMatchesDB';
 
 export default function NewMatch() {
     const { user } = useAuth();
-    const { createMatch, canCreateMatch } = useMatchesDB();
+    const { createMatch } = useMatchesDB();
     const navigate = useNavigate();
 
     const [mode, setMode]           = useState('scouting'); // 'scouting' | 'completo'
     const [tournament, setTournament] = useState('');
     const [location, setLocation]   = useState('');
     const [matchDate, setMatchDate] = useState(new Date().toISOString().split('T')[0]);
-    const [matchTypeGame, setMatchTypeGame] = useState('Clasificatorio');
     const [ownP1, setOwnP1]         = useState('');
     const [ownP2, setOwnP2]         = useState('');
     const [oppP1, setOppP1]         = useState('');

@@ -4,10 +4,11 @@ import { useAuth } from '../context/AuthContext';
 
 const FREE_MONTHLY_LIMIT = 5;
 
-export function useMatchesDB() {
+export function useMatchesDB({ autoFetch = true } = {}) {
     const { user, isPaid } = useAuth();
     const [matches, setMatches]   = useState([]);
-    const [loading, setLoading]   = useState(true);
+    // Si no hacemos fetch automático, no arrancamos en estado "loading".
+    const [loading, setLoading]   = useState(autoFetch);
     const [error, setError]       = useState(null);
 
     const fetchMatches = useCallback(async () => {
@@ -24,19 +25,22 @@ export function useMatchesDB() {
         setLoading(false);
     }, [user]);
 
-    useEffect(() => { fetchMatches(); }, [fetchMatches]);
+    // autoFetch=false evita un SELECT innecesario cuando el hook se usa solo
+    // para mutaciones (ej. MatchApp solo necesita updateMatch).
+    useEffect(() => { if (autoFetch) fetchMatches(); }, [autoFetch, fetchMatches]);
 
-    // Partidos del mes actual (para límite Free)
+    // Partidos del mes actual (para límite Free).
+    // Usa UTC para coincidir con la política RLS del servidor: date_trunc('month', created_at).
     const matchesThisMonth = matches.filter(m => {
         const created = new Date(m.created_at);
         const now = new Date();
-        return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
+        return created.getUTCMonth() === now.getUTCMonth() && created.getUTCFullYear() === now.getUTCFullYear();
     });
 
     const canCreateMatch = isPaid || matchesThisMonth.length < FREE_MONTHLY_LIMIT;
     const monthlyUsed    = matchesThisMonth.length;
 
-    async function createMatch(matchData) {
+    const createMatch = useCallback(async (matchData) => {
         if (!canCreateMatch) return { error: 'Límite mensual alcanzado. Actualiza a Pro.' };
         const { data, error } = await supabase
             .from('matches')
@@ -45,9 +49,10 @@ export function useMatchesDB() {
             .single();
         if (!error) setMatches(prev => [data, ...prev]);
         return { data, error };
-    }
+    }, [canCreateMatch, user]);
 
-    async function updateMatch(id, matchData) {
+    const updateMatch = useCallback(async (id, matchData) => {
+        if (!user) return { error: 'No autenticado' };
         const { data, error } = await supabase
             .from('matches')
             .update({ ...matchData, updated_at: new Date().toISOString() })
@@ -57,9 +62,10 @@ export function useMatchesDB() {
             .single();
         if (!error) setMatches(prev => prev.map(m => m.id === id ? data : m));
         return { data, error };
-    }
+    }, [user]);
 
-    async function deleteMatch(id) {
+    const deleteMatch = useCallback(async (id) => {
+        if (!user) return { error: 'No autenticado' };
         const { error } = await supabase
             .from('matches')
             .delete()
@@ -67,7 +73,7 @@ export function useMatchesDB() {
             .eq('user_id', user.id);
         if (!error) setMatches(prev => prev.filter(m => m.id !== id));
         return { error };
-    }
+    }, [user]);
 
     return {
         matches,

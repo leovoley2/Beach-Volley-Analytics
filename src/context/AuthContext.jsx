@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext(null);
@@ -68,9 +68,9 @@ export function AuthProvider({ children }) {
             clearTimeout(safetyTimeout);
             authListener?.unsubscribe();
         };
-    }, []);
+    }, [fetchSubscription]);
 
-    async function fetchSubscription(userId) {
+    const fetchSubscription = useCallback(async (userId) => {
         try {
             const { data, error } = await supabase
                 .from('subscriptions')
@@ -91,13 +91,14 @@ export function AuthProvider({ children }) {
         } finally {
             setLoading(false);
         }
-    }
+    }, []);
 
-    // Refresca la suscripción desde la BD — útil después de un pago
-    async function refreshSubscription() {
+    // Refresca la suscripción desde la BD — útil después de un pago.
+    // Memoizada para no reiniciar efectos que la usan como dependencia (ej. PaymentSuccess).
+    const refreshSubscription = useCallback(async () => {
         if (!user) return null;
         return fetchSubscription(user.id);
-    }
+    }, [user, fetchSubscription]);
 
     async function signUp(email, password, fullName) {
         const { data, error } = await supabase.auth.signUp({

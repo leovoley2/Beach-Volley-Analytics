@@ -71,7 +71,7 @@ const OUTCOME_SYMBOL = {
 };
 
 /** Timeline of actions grouped by rally (point) */
-function PointChronology({ playerActions, allSetActions, playerColor, playerName }) {
+function PointChronology({ playerActions, allSetActions }) {
     const [tooltip, setTooltip] = useState(null);
 
     // Use full set actions for rally boundary detection; fall back to playerActions
@@ -205,8 +205,7 @@ function PointChronology({ playerActions, allSetActions, playerColor, playerName
                                     <g
                                         key={ai}
                                         style={{ cursor: 'pointer' }}
-                                        onMouseEnter={(e) => {
-                                            const rect = e.currentTarget.closest('svg').getBoundingClientRect();
+                                        onMouseEnter={() => {
                                             setTooltip({
                                                 x: cx,
                                                 y: cy - dotR - 2,

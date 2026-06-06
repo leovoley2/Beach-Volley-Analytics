@@ -239,8 +239,6 @@ function ReportViewer({ onGoToTracker, isPaid = false, matchId = null }) {
         onGoToTracker();
     };
 
-    const numSets = selectedMatch ? selectedMatch.sets.length : 0;
-
     return (
         <div className="card">
             <h2>Visor de Informes</h2>
