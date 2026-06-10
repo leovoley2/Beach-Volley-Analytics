@@ -7,7 +7,7 @@ const PLANS = [
     {
         id: 'free',
         name: 'Free',
-        price: '$0',
+        price: 'S/ 0',
         period: '',
         desc: 'Para probar la plataforma.',
         features: [
@@ -24,7 +24,7 @@ const PLANS = [
     {
         id: 'pro',
         name: 'Pro',
-        price: '$9',
+        price: 'S/ 35',
         period: '/ mes',
         desc: 'Para entrenadores y analistas activos.',
         features: [
@@ -41,7 +41,7 @@ const PLANS = [
     {
         id: 'team',
         name: 'Team',
-        price: '$29',
+        price: 'S/ 109',
         period: '/ mes',
         desc: 'Para clubs y academias.',
         features: [
@@ -58,7 +58,7 @@ const PLANS = [
 ];
 
 export default function Pricing() {
-    const { user, subscription, isPaid, signOut } = useAuth();
+    const { user, subscription, signOut } = useAuth();
     const navigate = useNavigate();
 
     async function handleSignOut() {
@@ -97,11 +97,11 @@ export default function Pricing() {
             });
             const data = await res.json();
             if (data.url) {
-                window.location.href = data.url; // Redirige a Stripe Checkout
+                window.location.href = data.url; // Redirige al checkout de Mercado Pago
             } else {
                 setError(data.error || 'Error al crear la sesión de pago.');
             }
-        } catch (err) {
+        } catch {
             setError('Error de conexión. Intenta de nuevo.');
         }
         setLoadingPlan(null);
@@ -195,17 +195,17 @@ export default function Pricing() {
                                         boxShadow: plan.featured && !isCurrentPlan ? '0 2px 12px rgba(249,115,22,0.3)' : 'none',
                                     }}
                                 >
-                                    {isLoading ? 'Redirigiendo a Stripe...' : isCurrentPlan ? 'Plan actual' : plan.cta}
+                                    {isLoading ? 'Redirigiendo a Mercado Pago...' : isCurrentPlan ? 'Plan actual' : plan.cta}
                                 </button>
                             </div>
                         );
                     })}
                 </div>
 
-                {/* Badge Stripe */}
+                {/* Badge Mercado Pago */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginTop: '2.5rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#6772e5" strokeWidth="2"/></svg>
-                    Pagos seguros procesados por <strong style={{ color: '#6772e5' }}>Stripe</strong> · SSL 256-bit · Cancela en cualquier momento
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#00b1ea" strokeWidth="2"/></svg>
+                    Pagos seguros procesados por <strong style={{ color: '#00b1ea' }}>Mercado Pago</strong> · Tarjeta o Yape · Cancela en cualquier momento
                 </div>
             </div>
         </div>

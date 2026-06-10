@@ -9,15 +9,17 @@ const supabaseAdmin = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// MP solo cobra en la moneda local de la cuenta vendedora (cuenta Perú → PEN).
+// Equivalencias aprox. de los precios originales en USD ($9 / $29).
 const PLAN_CONFIG = {
     pro: {
-        amount:   9,
-        currency: 'USD',
+        amount:   35,
+        currency: 'PEN',
         name:     'Plan Pro – Beach Volley Analytics',
     },
     team: {
-        amount:   29,
-        currency: 'USD',
+        amount:   109,
+        currency: 'PEN',
         name:     'Plan Team – Beach Volley Analytics',
     },
 };

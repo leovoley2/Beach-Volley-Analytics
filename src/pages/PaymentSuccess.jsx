@@ -62,7 +62,7 @@ export default function PaymentSuccess() {
                             Confirmando tu pago…
                         </h1>
                         <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: '1.5rem', lineHeight: 1.7 }}>
-                            Estamos verificando con Stripe. Tarda unos segundos.
+                            Estamos verificando con Mercado Pago. Tarda unos segundos.
                         </p>
                         <div style={{ display: 'flex', justifyContent: 'center', gap: '0.4rem', marginBottom: '1rem' }}>
                             {[0, 1, 2].map(i => (

@@ -30,15 +30,16 @@ export default async function handler(req, res) {
 
         if (!dataId) return res.status(400).json({ error: 'Missing data.id' });
 
-        // Verificar firma con el validador nativo del SDK de MP
+        // Verificar firma con el validador nativo del SDK de MP.
+        // MP firma con el data.id del QUERY STRING (no el del body).
         if (process.env.MP_WEBHOOK_SECRET) {
             try {
-                const validator = new WebhookSignatureValidator();
-                validator.validate({
+                WebhookSignatureValidator.validate({
                     xSignature:  req.headers['x-signature'],
                     xRequestId:  req.headers['x-request-id'],
-                    dataId,
+                    dataId:      req.query?.['data.id'] ?? dataId,
                     secret:      process.env.MP_WEBHOOK_SECRET,
+                    toleranceSeconds: 300,
                 });
             } catch (err) {
                 if (err instanceof InvalidWebhookSignatureError) {
@@ -67,6 +68,7 @@ export default async function handler(req, res) {
                     user_id:            userId,
                     plan,
                     status:             'active',
+                    provider:           'mercadopago',
                     mp_subscription_id: subscription.id,
                     current_period_end: subscription.next_payment_date ?? null,
                     updated_at:         new Date().toISOString(),
