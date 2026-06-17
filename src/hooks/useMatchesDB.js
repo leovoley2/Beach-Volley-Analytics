@@ -4,6 +4,19 @@ import { useAuth } from '../context/AuthContext';
 
 const FREE_MONTHLY_LIMIT = 5;
 
+// Traduce errores del servidor (RLS / rate limit) a mensajes claros en español.
+function friendlyError(error) {
+    if (!error) return error;
+    const msg = error.message || String(error);
+    if (/operaciones por minuto/i.test(msg)) {
+        return 'Estás haciendo demasiadas operaciones muy rápido. Espera un momento e inténtalo de nuevo.';
+    }
+    if (/row-level security|violates row-level security|RLS/i.test(msg)) {
+        return 'Alcanzaste el límite mensual del plan Free (5 partidos). Actualiza a Pro para crear más.';
+    }
+    return msg;
+}
+
 export function useMatchesDB({ autoFetch = true } = {}) {
     const { user, isPaid } = useAuth();
     const [matches, setMatches]   = useState([]);
@@ -48,7 +61,7 @@ export function useMatchesDB({ autoFetch = true } = {}) {
             .select()
             .single();
         if (!error) setMatches(prev => [data, ...prev]);
-        return { data, error };
+        return { data, error: error ? friendlyError(error) : null };
     }, [canCreateMatch, user]);
 
     const updateMatch = useCallback(async (id, matchData) => {
@@ -61,7 +74,7 @@ export function useMatchesDB({ autoFetch = true } = {}) {
             .select()
             .single();
         if (!error) setMatches(prev => prev.map(m => m.id === id ? data : m));
-        return { data, error };
+        return { data, error: error ? friendlyError(error) : null };
     }, [user]);
 
     const deleteMatch = useCallback(async (id) => {
@@ -72,7 +85,7 @@ export function useMatchesDB({ autoFetch = true } = {}) {
             .eq('id', id)
             .eq('user_id', user.id);
         if (!error) setMatches(prev => prev.filter(m => m.id !== id));
-        return { error };
+        return { error: error ? friendlyError(error) : null };
     }, [user]);
 
     return {

@@ -16,10 +16,12 @@ export default function Signup() {
     const [error, setError]       = useState('');
     const [loading, setLoading]   = useState(false);
     const [success, setSuccess]   = useState(false);
+    const [accepted, setAccepted] = useState(false);
 
     async function handleSubmit(e) {
         e.preventDefault();
         setError('');
+        if (!accepted) { setError('Debes aceptar los Términos y la Política de Privacidad.'); return; }
         if (password.length < 8) { setError('La contraseña debe tener al menos 8 caracteres.'); return; }
         setLoading(true);
         const { error } = await signUp(email, password, fullName);
@@ -89,8 +91,15 @@ export default function Signup() {
                         <input className="form-input" type="password" placeholder="Mínimo 8 caracteres"
                             value={password} onChange={e => setPassword(e.target.value)} required />
                     </div>
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.85rem', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={accepted} onChange={e => setAccepted(e.target.checked)} style={{ marginTop: '0.2rem' }} />
+                        <span>
+                            Acepto los <Link to="/terms" target="_blank" style={{ color: 'var(--accent)' }}>Términos y Condiciones</Link> y la{' '}
+                            <Link to="/privacy" target="_blank" style={{ color: 'var(--accent)' }}>Política de Privacidad</Link>.
+                        </span>
+                    </label>
                     {error && <p style={{ color: 'var(--c-dn)', fontSize: '0.82rem', marginBottom: '0.75rem' }}>{error}</p>}
-                    <button className="btn-auth" type="submit" disabled={loading}>
+                    <button className="btn-auth" type="submit" disabled={loading || !accepted}>
                         {loading ? 'Creando cuenta...' : 'Crear cuenta gratis'}
                     </button>
                 </form>

@@ -36,6 +36,17 @@ export default async function handler(req, res) {
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) return res.status(401).json({ error: 'Unauthorized' });
 
+    // Rate limit: máx 10 intentos de checkout por usuario por minuto.
+    // Evita que alguien con sesión válida martillee la creación de suscripciones.
+    const { error: rlError } = await supabaseAdmin.rpc('enforce_rate_limit_uid', {
+        p_uid: user.id,
+        p_bucket: 'create_checkout',
+        p_limit: 10,
+    });
+    if (rlError) {
+        return res.status(429).json({ error: 'Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.' });
+    }
+
     try {
         const { plan, userId, userEmail } = req.body;
 

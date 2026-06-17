@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getLockState, recordFailure, clearAttempts } from '../lib/loginThrottle';
 
 export default function Login() {
     const { signIn, signInWithGoogle, user } = useAuth();
@@ -9,29 +10,61 @@ export default function Login() {
     const [password, setPassword] = useState('');
     const [error, setError]       = useState('');
     const [loading, setLoading]   = useState(false);
+    // Segundos restantes de bloqueo por demasiados intentos fallidos (0 = sin bloqueo)
+    const [lockSeconds, setLockSeconds] = useState(0);
 
     // Navegar cuando el user quede establecido en AuthContext
     useEffect(() => {
         if (user) navigate('/dashboard', { replace: true });
     }, [user, navigate]);
 
+    // Cuenta regresiva del bloqueo: refresca el mensaje cada segundo.
+    useEffect(() => {
+        if (lockSeconds <= 0) return;
+        const t = setInterval(() => {
+            const { locked, remainingSeconds } = getLockState(email);
+            setLockSeconds(locked ? remainingSeconds : 0);
+        }, 1000);
+        return () => clearInterval(t);
+    }, [lockSeconds, email]);
+
     async function handleSubmit(e) {
         e.preventDefault();
         setError('');
+
+        // Defensa anti fuerza-bruta en el cliente (complementa el rate limit de Supabase Auth)
+        const lock = getLockState(email);
+        if (lock.locked) {
+            setLockSeconds(lock.remainingSeconds);
+            setError(`Demasiados intentos fallidos. Espera ${lock.remainingSeconds}s antes de volver a intentar.`);
+            return;
+        }
+
         setLoading(true);
         const { error } = await signIn(email, password);
         setLoading(false);
         if (error) {
             // Traducir los errores más comunes de Supabase al español
             if (error.message.includes('Invalid login credentials')) {
-                setError('Correo o contraseña incorrectos. Verifica tus datos.');
+                const state = recordFailure(email);
+                if (state.locked) {
+                    setLockSeconds(state.remainingSeconds);
+                    setError(`Demasiados intentos fallidos. Cuenta protegida temporalmente: espera ${state.remainingSeconds}s.`);
+                } else {
+                    setError('Correo o contraseña incorrectos. Verifica tus datos.');
+                }
             } else if (error.message.includes('Email not confirmed')) {
                 setError('Debes confirmar tu correo antes de iniciar sesión.');
+            } else if (error.status === 429 || /rate limit/i.test(error.message)) {
+                setError('Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.');
             } else {
                 setError(error.message);
             }
+            return;
         }
-        // Si no hay error, el useEffect de arriba navega cuando AuthContext actualiza el user
+        // Login exitoso: limpiar el contador de intentos fallidos.
+        clearAttempts(email);
+        // El useEffect de arriba navega cuando AuthContext actualiza el user
     }
 
     async function handleGoogle() {
@@ -98,13 +131,13 @@ export default function Login() {
                         </div>
                     )}
 
-                    <button className="btn-auth" type="submit" disabled={loading}>
+                    <button className="btn-auth" type="submit" disabled={loading || lockSeconds > 0}>
                         {loading ? (
                             <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                                 <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span>
                                 Iniciando sesión...
                             </span>
-                        ) : 'Iniciar sesión'}
+                        ) : lockSeconds > 0 ? `Bloqueado (${lockSeconds}s)` : 'Iniciar sesión'}
                     </button>
                     <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
                 </form>
@@ -116,6 +149,11 @@ export default function Login() {
                     <Link to="/forgot-password" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                         ¿Olvidaste tu contraseña?
                     </Link>
+                </div>
+                <div style={{ marginTop: '1.25rem', textAlign: 'center', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                    <Link to="/terms" style={{ color: 'var(--text-muted)' }}>Términos</Link>
+                    {' · '}
+                    <Link to="/privacy" style={{ color: 'var(--text-muted)' }}>Privacidad</Link>
                 </div>
             </div>
         </div>
