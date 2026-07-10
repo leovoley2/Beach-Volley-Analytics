@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
 export default function ResetPassword() {
-    const navigate = useNavigate();
     const [password, setPassword]   = useState('');
     const [confirm, setConfirm]     = useState('');
     const [loading, setLoading]     = useState(false);
@@ -35,13 +33,26 @@ export default function ResetPassword() {
         }
 
         setLoading(true);
-        const { error } = await supabase.auth.updateUser({ password });
-        setLoading(false);
 
-        if (error) setError(error.message);
-        else {
-            // Contraseña cambiada — ir al dashboard
-            navigate('/dashboard');
+        // Red de seguridad: updateUser() emite el evento USER_UPDATED, cuyo listener
+        // en AuthContext hace una consulta a `subscriptions`. Si esa consulta se cuelga
+        // (BD lenta/fría), la promesa de updateUser nunca resuelve y la pantalla se
+        // queda atascada en "Guardando..." aunque el servidor YA cambió la contraseña.
+        // Si tras el timeout no hubo error, forzamos el avance con recarga completa:
+        // AuthContext se reinicia limpio con la nueva sesión.
+        const safety = setTimeout(() => {
+            window.location.replace('/dashboard');
+        }, 6000);
+
+        const { error } = await supabase.auth.updateUser({ password });
+        clearTimeout(safety);
+
+        if (error) {
+            setLoading(false);
+            setError(error.message);
+        } else {
+            // Contraseña cambiada — recarga completa para entrar con estado limpio
+            window.location.replace('/dashboard');
         }
     }
 
