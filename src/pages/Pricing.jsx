@@ -15,7 +15,6 @@ const PLANS = [
             { ok: true,  text: 'Mapa de cancha con trayectorias' },
             { ok: false, text: 'Exportar PDF' },
             { ok: false, text: 'Historial ilimitado' },
-            { ok: false, text: 'Múltiples usuarios' },
         ],
         cta: 'Tu plan actual',
         featured: false,
@@ -23,7 +22,7 @@ const PLANS = [
     {
         id: 'pro',
         name: 'Pro',
-        price: '$9',
+        price: '$10',
         period: '/ mes',
         desc: 'Para entrenadores y analistas activos.',
         features: [
@@ -32,26 +31,26 @@ const PLANS = [
             { ok: true, text: 'Mapa de cancha con trayectorias' },
             { ok: true, text: 'Exportar PDF' },
             { ok: true, text: 'Historial ilimitado' },
-            { ok: false, text: 'Múltiples usuarios' },
         ],
         cta: 'Empezar Pro',
         featured: true,
     },
     {
+        // Nota: la clave interna sigue siendo 'team' (se guarda plan='team' en la BD)
+        // para no tocar is_paid_user()/webhook/auth. De cara al usuario es "Pro Anual".
         id: 'team',
-        name: 'Team',
-        price: '$29',
-        period: '/ mes',
-        desc: 'Para clubs y academias.',
+        name: 'Pro Anual',
+        price: '$100',
+        period: '/ año',
+        desc: 'El plan Pro con el mejor precio, facturado una vez al año.',
         features: [
-            { ok: true, text: 'Todo lo de Pro' },
-            { ok: true, text: 'Hasta 5 usuarios' },
-            { ok: true, text: 'Dashboard compartido' },
+            { ok: true, text: 'Todo lo del plan Pro' },
+            { ok: true, text: 'Partidos ilimitados' },
             { ok: true, text: 'Exportar PDF' },
             { ok: true, text: 'Historial ilimitado' },
-            { ok: true, text: 'Soporte prioritario' },
+            { ok: true, text: 'Equivale a ~2 meses gratis' },
         ],
-        cta: 'Empezar Team',
+        cta: 'Empezar anual',
         featured: false,
     },
 ];

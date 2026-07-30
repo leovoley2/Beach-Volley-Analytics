@@ -10,7 +10,8 @@
  *
  * Para producción añade  PAYPAL_ENV=live  al comando.
  *
- * Precios (editables aquí abajo): Pro $9/mes · Team $29/mes · moneda USD.
+ * Precios (editables aquí abajo): Pro $10/mes · Pro Anual $100/año · moneda USD.
+ * (La clave TEAM se reutiliza para el plan anual: se guarda plan='team' en la BD.)
  */
 
 const BASE = process.env.PAYPAL_ENV === 'live'
@@ -19,8 +20,8 @@ const BASE = process.env.PAYPAL_ENV === 'live'
 
 const CURRENCY = 'USD';
 const PLANS = [
-    { key: 'PRO',  name: 'Beach Volley Analytics – Pro',  price: '9.00'  },
-    { key: 'TEAM', name: 'Beach Volley Analytics – Team', price: '29.00' },
+    { key: 'PRO',  name: 'Beach Volley Analytics – Pro',       price: '10.00',  interval: 'MONTH' },
+    { key: 'TEAM', name: 'Beach Volley Analytics – Pro Anual', price: '100.00', interval: 'YEAR'  },
 ];
 
 async function token() {
@@ -64,7 +65,7 @@ async function createPlan(accessToken, productId, plan) {
             name: plan.name,
             status: 'ACTIVE',
             billing_cycles: [{
-                frequency: { interval_unit: 'MONTH', interval_count: 1 },
+                frequency: { interval_unit: plan.interval, interval_count: 1 },
                 tenure_type: 'REGULAR',
                 sequence: 1,
                 total_cycles: 0, // 0 = sin fin (hasta cancelar)

@@ -132,7 +132,14 @@ export function AuthProvider({ children }) {
 
     async function signOut() {
         try {
-            await supabase.auth.signOut();
+            // scope:'local' limpia la sesión de localStorage SIN llamada de red.
+            // El signOut global (por defecto) hace un revoke por red que puede
+            // colgarse → el await nunca resolvía y el botón "Salir" no hacía nada.
+            // Lo envolvemos además en un timeout para garantizar la salida siempre.
+            await Promise.race([
+                supabase.auth.signOut({ scope: 'local' }),
+                new Promise(resolve => setTimeout(resolve, 1500)),
+            ]);
         } catch (err) {
             console.error('signOut error:', err);
         } finally {
