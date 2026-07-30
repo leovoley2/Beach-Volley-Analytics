@@ -207,6 +207,9 @@ function ReportViewer({ onGoToTracker, isPaid = false, matchId = null }) {
     }, [selectedMatch, filteredActions]);
 
     const generatePdf = async () => {
+        // Gate de plan: el PDF es sólo para pago. Guard defensivo por si se
+        // intenta invocar sin pasar por el botón (el botón ya lo oculta al Free).
+        if (!isPaid) { window.location.href = '/pricing'; return; }
         const reportElement = reportContentRef.current;
         if (!reportElement) return;
         setIsGeneratingPdf(true);

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 
-const FREE_MONTHLY_LIMIT = 5;
+const FREE_MONTHLY_LIMIT = 2;
 
 // Traduce errores del servidor (RLS / rate limit) a mensajes claros en español.
 function friendlyError(error) {
@@ -12,7 +12,7 @@ function friendlyError(error) {
         return 'Estás haciendo demasiadas operaciones muy rápido. Espera un momento e inténtalo de nuevo.';
     }
     if (/row-level security|violates row-level security|RLS/i.test(msg)) {
-        return 'Alcanzaste el límite mensual del plan Free (5 partidos). Actualiza a Pro para crear más.';
+        return 'Alcanzaste el límite mensual del plan Free (2 partidos). Actualiza a Pro para crear más.';
     }
     return msg;
 }

@@ -10,7 +10,7 @@ const PLANS = [
         period: '',
         desc: 'Para probar la plataforma.',
         features: [
-            { ok: true,  text: '5 partidos por mes' },
+            { ok: true,  text: '2 partidos por mes' },
             { ok: true,  text: 'Tracker completo' },
             { ok: true,  text: 'Mapa de cancha con trayectorias' },
             { ok: false, text: 'Exportar PDF' },
