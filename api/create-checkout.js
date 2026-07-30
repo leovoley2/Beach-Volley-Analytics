@@ -16,6 +16,13 @@ export default async function handler(req, res) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ error: 'Unauthorized' });
 
+    // El token de PayPal no depende del usuario: lo pedimos EN PARALELO con la
+    // verificación de sesión y el rate-limit para no encadenar RTTs (más rápido).
+    // El .catch evita un unhandledRejection si retornamos antes de usarlo; el
+    // await posterior sigue propagando el error real al try/catch.
+    const tokenPromise = getPayPalAccessToken();
+    tokenPromise.catch(() => {});
+
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -36,7 +43,7 @@ export default async function handler(req, res) {
         if (!planId) return res.status(400).json({ error: 'Plan inválido' });
 
         const baseUrl     = process.env.VITE_APP_URL || `https://${process.env.VERCEL_URL}`;
-        const accessToken = await getPayPalAccessToken();
+        const accessToken = await tokenPromise;
 
         const resp = await fetch(`${PAYPAL_BASE}/v1/billing/subscriptions`, {
             method:  'POST',

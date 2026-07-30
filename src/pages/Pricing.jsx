@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabase';
 
 const PLANS = [
     {
@@ -58,7 +57,7 @@ const PLANS = [
 ];
 
 export default function Pricing() {
-    const { user, subscription, signOut } = useAuth();
+    const { user, session, subscription, signOut } = useAuth();
     const navigate = useNavigate();
 
     async function handleSignOut() {
@@ -76,27 +75,31 @@ export default function Pricing() {
         setLoadingPlan(planId);
         setError('');
 
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session?.access_token) {
-                setError('Sesión expirada. Por favor vuelve a iniciar sesión.');
-                return;
-            }
+        // Usamos el token que AuthContext ya tiene cargado (se refresca solo vía
+        // onAuthStateChange). Antes se llamaba supabase.auth.getSession() aquí, que
+        // podía quedarse colgado para siempre → el botón giraba sin redirigir nunca.
+        const accessToken = session?.access_token;
+        if (!accessToken) {
+            setError('Sesión expirada. Por favor vuelve a iniciar sesión.');
+            setLoadingPlan(null);
+            return;
+        }
 
+        try {
             const res = await fetch('/api/create-checkout', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`,
+                    'Authorization': `Bearer ${accessToken}`,
                 },
                 body: JSON.stringify({ plan: planId }),
             });
             const data = await res.json();
             if (data.url) {
                 window.location.href = data.url; // Redirige al checkout de PayPal
-            } else {
-                setError(data.error || 'Error al crear la sesión de pago.');
+                return; // la página navega fuera; dejamos el spinner hasta que se vaya
             }
+            setError(data.error || 'Error al crear la sesión de pago.');
         } catch {
             setError('Error de conexión. Intenta de nuevo.');
         }

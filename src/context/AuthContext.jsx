@@ -5,6 +5,7 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
     const [user, setUser]                 = useState(null);
+    const [session, setSession]           = useState(null);
     const [subscription, setSubscription] = useState(null);
     const [loading, setLoading]           = useState(true);
 
@@ -58,9 +59,11 @@ export function AuthProvider({ children }) {
 
                 if (session?.user) {
                     setUser(session.user);
+                    setSession(session);
                     await fetchSubscription(session.user.id);
                 } else {
                     setUser(null);
+                    setSession(null);
                     setSubscription(null);
                     setLoading(false);
                 }
@@ -80,9 +83,11 @@ export function AuthProvider({ children }) {
                 if (!mounted) return;
                 if (session?.user) {
                     setUser(session.user);
+                    setSession(session);
                     await fetchSubscription(session.user.id);
                 } else {
                     setUser(null);
+                    setSession(null);
                     setSubscription(null);
                     setLoading(false);
                 }
@@ -132,6 +137,7 @@ export function AuthProvider({ children }) {
             console.error('signOut error:', err);
         } finally {
             setUser(null);
+            setSession(null);
             setSubscription(null);
             setLoading(false);
         }
@@ -145,7 +151,7 @@ export function AuthProvider({ children }) {
 
     return (
         <AuthContext.Provider value={{
-            user, subscription, loading,
+            user, session, subscription, loading,
             isPaid, isPro, isTeam,
             signUp, signIn, signInWithGoogle, signOut,
             refreshSubscription,
