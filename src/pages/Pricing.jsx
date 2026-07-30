@@ -7,7 +7,7 @@ const PLANS = [
     {
         id: 'free',
         name: 'Free',
-        price: 'S/ 0',
+        price: '$0',
         period: '',
         desc: 'Para probar la plataforma.',
         features: [
@@ -24,7 +24,7 @@ const PLANS = [
     {
         id: 'pro',
         name: 'Pro',
-        price: 'S/ 35',
+        price: '$9',
         period: '/ mes',
         desc: 'Para entrenadores y analistas activos.',
         features: [
@@ -41,7 +41,7 @@ const PLANS = [
     {
         id: 'team',
         name: 'Team',
-        price: 'S/ 109',
+        price: '$29',
         period: '/ mes',
         desc: 'Para clubs y academias.',
         features: [
@@ -89,15 +89,11 @@ export default function Pricing() {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${session.access_token}`,
                 },
-                body: JSON.stringify({
-                    plan:      planId,
-                    userId:    user.id,
-                    userEmail: user.email,
-                }),
+                body: JSON.stringify({ plan: planId }),
             });
             const data = await res.json();
             if (data.url) {
-                window.location.href = data.url; // Redirige al checkout de Mercado Pago
+                window.location.href = data.url; // Redirige al checkout de PayPal
             } else {
                 setError(data.error || 'Error al crear la sesión de pago.');
             }
@@ -195,17 +191,17 @@ export default function Pricing() {
                                         boxShadow: plan.featured && !isCurrentPlan ? '0 2px 12px rgba(249,115,22,0.3)' : 'none',
                                     }}
                                 >
-                                    {isLoading ? 'Redirigiendo a Mercado Pago...' : isCurrentPlan ? 'Plan actual' : plan.cta}
+                                    {isLoading ? 'Redirigiendo a PayPal...' : isCurrentPlan ? 'Plan actual' : plan.cta}
                                 </button>
                             </div>
                         );
                     })}
                 </div>
 
-                {/* Badge Mercado Pago */}
+                {/* Badge PayPal */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginTop: '2.5rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#00b1ea" strokeWidth="2"/></svg>
-                    Pagos seguros procesados por <strong style={{ color: '#00b1ea' }}>Mercado Pago</strong> · Tarjeta o Yape · Cancela en cualquier momento
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#0070ba" strokeWidth="2"/></svg>
+                    Pagos seguros procesados por <strong style={{ color: '#0070ba' }}>PayPal</strong> · Tarjeta o saldo PayPal · Cancela en cualquier momento
                 </div>
             </div>
         </div>
