@@ -84,15 +84,32 @@ export default async function handler(req, res) {
                 break;
             }
 
-            // Renovación mensual cobrada → reafirmar activo. En ventas el id de la
-            // suscripción viene en billing_agreement_id, no en resource.id.
+            // Cobro (primer pago o renovación) → reafirmar activo y refrescar la
+            // fecha de próxima renovación. En ventas el id de la suscripción viene
+            // en billing_agreement_id, no en resource.id.
             case 'PAYMENT.SALE.COMPLETED': {
                 const subId = resource.billing_agreement_id;
                 if (subId) {
-                    await supabaseAdmin.from('subscriptions').update({
-                        status:     'active',
-                        updated_at: new Date().toISOString(),
-                    }).eq('paypal_subscription_id', subId);
+                    // Consultar la suscripción para obtener el nuevo next_billing_time
+                    // (el evento de venta no lo trae).
+                    let nextBilling = null;
+                    try {
+                        const token2 = await getPayPalAccessToken();
+                        const subRes = await fetch(`${PAYPAL_BASE}/v1/billing/subscriptions/${subId}`, {
+                            headers: { Authorization: `Bearer ${token2}` },
+                        });
+                        if (subRes.ok) {
+                            const sub = await subRes.json();
+                            nextBilling = sub.billing_info?.next_billing_time ?? null;
+                        }
+                    } catch (e) {
+                        console.error('PAYMENT.SALE.COMPLETED: no se pudo leer la suscripción', e);
+                    }
+
+                    const patch = { status: 'active', updated_at: new Date().toISOString() };
+                    if (nextBilling) patch.current_period_end = nextBilling;
+                    await supabaseAdmin.from('subscriptions').update(patch)
+                        .eq('paypal_subscription_id', subId);
                 }
                 break;
             }
