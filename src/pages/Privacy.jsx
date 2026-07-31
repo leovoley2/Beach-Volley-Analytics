@@ -27,7 +27,7 @@ export default function Privacy() {
                     <ul>
                         <li><strong>Datos de cuenta:</strong> nombre, correo electrónico y contraseña (almacenada cifrada por nuestro proveedor de autenticación, Supabase).</li>
                         <li><strong>Datos de uso de la app:</strong> partidos, jugadores, estadísticas y análisis que tú registras.</li>
-                        <li><strong>Datos de pago:</strong> gestionados por la pasarela de pago (Mercado Pago). No almacenamos los datos de tu tarjeta en nuestros servidores.</li>
+                        <li><strong>Datos de pago:</strong> gestionados por la pasarela de pago (PayPal). No almacenamos los datos de tu tarjeta en nuestros servidores.</li>
                         <li><strong>Datos técnicos:</strong> dirección IP, tipo de navegador y registros de acceso, usados para seguridad y prevención de abuso.</li>
                     </ul>
                 </Section>
@@ -45,7 +45,7 @@ export default function Privacy() {
                     <p>Solo compartimos datos con proveedores que nos ayudan a operar el servicio, bajo acuerdos de confidencialidad:</p>
                     <ul>
                         <li><strong>Supabase</strong> — base de datos y autenticación.</li>
-                        <li><strong>Mercado Pago</strong> — procesamiento de pagos.</li>
+                        <li><strong>PayPal</strong> — procesamiento de pagos.</li>
                         <li><strong>Vercel</strong> — alojamiento de la aplicación.</li>
                     </ul>
                     <p>No vendemos tus datos personales a terceros. Algunos proveedores pueden procesar datos fuera de tu país; en esos casos se aplican garantías adecuadas.</p>

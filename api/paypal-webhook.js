@@ -50,6 +50,35 @@ export default async function handler(req, res) {
                 if (!userId || !plan || !subscriptionId) {
                     return res.status(200).json({ received: true });
                 }
+
+                // Anti doble cobro: si el usuario ya tenía OTRA suscripción PayPal
+                // (p. ej. cambió de mensual a anual), la cancelamos antes de sobrescribir
+                // para que PayPal no le cobre las dos. La cancelación es idempotente:
+                // 422 = ya estaba inactiva → lo ignoramos.
+                // Ojo: el evento CANCELLED que dispara esta cancelación llegará después,
+                // pero para entonces la fila ya apunta al nuevo id, así que su
+                // .eq(paypal_subscription_id, viejo_id) no coincide y no degrada al usuario.
+                const { data: prev } = await supabaseAdmin
+                    .from('subscriptions')
+                    .select('paypal_subscription_id')
+                    .eq('user_id', userId)
+                    .maybeSingle();
+                const prevId = prev?.paypal_subscription_id;
+                if (prevId && prevId !== subscriptionId) {
+                    try {
+                        const cancelRes = await fetch(`${PAYPAL_BASE}/v1/billing/subscriptions/${prevId}/cancel`, {
+                            method:  'POST',
+                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+                            body:    JSON.stringify({ reason: 'Reemplazada por un nuevo plan' }),
+                        });
+                        if (!cancelRes.ok && cancelRes.status !== 422) {
+                            console.error('No se pudo cancelar la suscripción previa', prevId, cancelRes.status);
+                        }
+                    } catch (e) {
+                        console.error('Error cancelando suscripción previa', prevId, e);
+                    }
+                }
+
                 await supabaseAdmin.from('subscriptions').upsert({
                     user_id:                userId,
                     plan,

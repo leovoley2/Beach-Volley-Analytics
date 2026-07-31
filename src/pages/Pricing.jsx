@@ -114,7 +114,7 @@ export default function Pricing() {
                     <button onClick={() => navigate('/dashboard')}>Mis partidos</button>
                 </div>
                 <div className="topbar-right">
-                    <span className="plan-chip">{currentPlan.toUpperCase()}</span>
+                    <span className="plan-chip">{({ pro: 'PRO', team: 'PRO ANUAL' }[currentPlan]) || 'FREE'}</span>
                     <div className="avatar">{initials}</div>
                     <button onClick={handleSignOut} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.8rem' }}>Salir</button>
                 </div>

@@ -47,7 +47,7 @@ export default function Terms() {
 
                 <Section title="5. Planes, pagos y renovación">
                     <ul>
-                        <li>Las suscripciones de pago se cobran de forma recurrente (mensual) a través de Mercado Pago.</li>
+                        <li>Las suscripciones de pago se cobran de forma recurrente (mensual o anual, según el plan) a través de PayPal.</li>
                         <li>Los precios pueden cambiar; te avisaremos con antelación razonable.</li>
                         <li>Puedes cancelar en cualquier momento; el acceso de pago continúa hasta el final del periodo ya pagado.</li>
                         <li>Salvo que la ley exija lo contrario, los pagos ya realizados no son reembolsables.</li>

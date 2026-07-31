@@ -39,7 +39,7 @@ export default function Dashboard() {
                     <button onClick={() => navigate('/match/new')}>Nuevo partido</button>
                 </div>
                 <div className="topbar-right">
-                    <span className="plan-chip">{subscription?.plan?.toUpperCase() || 'FREE'}</span>
+                    <span className="plan-chip">{({ pro: 'PRO', team: 'PRO ANUAL' }[subscription?.plan]) || 'FREE'}</span>
                     <div className="avatar" title={displayName}>{initials}</div>
                     <button onClick={handleSignOut} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.8rem' }}>Salir</button>
                 </div>
