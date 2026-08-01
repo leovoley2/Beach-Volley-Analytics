@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import { MatchProvider } from './context/MatchContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
+import Landing        from './pages/Landing';
 import Login          from './pages/Login';
 import Signup         from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
@@ -22,6 +23,7 @@ export default function App() {
             <BrowserRouter>
                 <Routes>
                     {/* Rutas públicas */}
+                    <Route path="/"                element={<Landing />} />
                     <Route path="/login"           element={<Login />} />
                     <Route path="/signup"          element={<Signup />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -44,9 +46,8 @@ export default function App() {
                         </ProtectedRoute>
                     } />
 
-                    {/* Redirect raíz */}
-                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                    <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                    {/* Cualquier otra ruta → landing (que redirige a dashboard si hay sesión) */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </BrowserRouter>
         </AuthProvider>
