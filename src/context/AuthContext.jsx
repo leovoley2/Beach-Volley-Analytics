@@ -30,13 +30,19 @@ export function AuthProvider({ children }) {
             console.error('fetchSubscription error:', err);
             setSubscription({ plan: 'free', status: 'active' });
             return null;
-        } finally {
-            setLoading(false);
         }
+        // Nota: NO tocamos `loading` aquí. La app se desbloquea en cuanto hay sesión
+        // (ver loadSession); la suscripción se carga en segundo plano, en paralelo
+        // con los partidos, para que el dashboard aparezca lo antes posible.
     }, []);
 
     useEffect(() => {
         let mounted = true;
+        // Id del usuario ya cargado. Evita:
+        //  - Doble fetch de suscripción (getSession + evento INITIAL_SESSION del listener).
+        //  - Re-descargar los partidos en cada refresco de token: si NO cambiamos la
+        //    referencia de `user`, el efecto de useMatchesDB no se vuelve a disparar.
+        let loadedUserId = null;
 
         // Timeout de seguridad: si en 8 segundos no resuelve, desbloquear la app
         const safetyTimeout = setTimeout(() => {
@@ -46,52 +52,47 @@ export function AuthProvider({ children }) {
             }
         }, 8000);
 
-        async function initAuth() {
-            try {
-                const { data: { session }, error } = await supabase.auth.getSession();
-                if (!mounted) return;
-
-                if (error) {
-                    console.error('Error al obtener sesión:', error.message);
-                    setLoading(false);
-                    return;
+        function loadSession(session) {
+            if (!mounted) return;
+            if (session?.user) {
+                // Mantener el token/session siempre fresco (útil tras TOKEN_REFRESHED).
+                setSession(session);
+                // Desbloquear la app de inmediato: ProtectedRoute solo necesita `user`.
+                // No esperamos a la suscripción → el dashboard monta y carga los
+                // partidos en paralelo con la consulta de suscripción.
+                setLoading(false);
+                if (session.user.id !== loadedUserId) {
+                    loadedUserId = session.user.id;
+                    setUser(session.user);           // solo al cambiar de usuario
+                    fetchSubscription(session.user.id); // en segundo plano (sin await)
                 }
-
-                if (session?.user) {
-                    setUser(session.user);
-                    setSession(session);
-                    await fetchSubscription(session.user.id);
-                } else {
-                    setUser(null);
-                    setSession(null);
-                    setSubscription(null);
-                    setLoading(false);
-                }
-            } catch (err) {
-                console.error('AuthContext init error:', err);
-                if (mounted) setLoading(false);
-            } finally {
-                clearTimeout(safetyTimeout);
+            } else {
+                loadedUserId = null;
+                setUser(null);
+                setSession(null);
+                setSubscription(null);
+                setLoading(false);
             }
         }
 
-        initAuth();
-
-        // Listener para cambios de sesión (login / logout)
-        const { data: { subscription: authListener } } = supabase.auth.onAuthStateChange(
-            async (_event, session) => {
-                if (!mounted) return;
-                if (session?.user) {
-                    setUser(session.user);
-                    setSession(session);
-                    await fetchSubscription(session.user.id);
-                } else {
-                    setUser(null);
-                    setSession(null);
-                    setSubscription(null);
-                    setLoading(false);
+        supabase.auth.getSession()
+            .then(({ data: { session }, error }) => {
+                if (error) {
+                    console.error('Error al obtener sesión:', error.message);
+                    if (mounted) setLoading(false);
+                    return;
                 }
-            }
+                loadSession(session);
+            })
+            .catch(err => {
+                console.error('AuthContext init error:', err);
+                if (mounted) setLoading(false);
+            })
+            .finally(() => clearTimeout(safetyTimeout));
+
+        // Listener para cambios de sesión (login / logout / refresh de token).
+        const { data: { subscription: authListener } } = supabase.auth.onAuthStateChange(
+            (_event, session) => loadSession(session)
         );
 
         return () => {
