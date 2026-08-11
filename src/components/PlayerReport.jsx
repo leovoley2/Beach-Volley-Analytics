@@ -305,7 +305,7 @@ function PlayerReport({ playerName, playerStats, playerColor, matchType, playerA
             legend: {
                 position: 'top',
                 labels: {
-                    color: '#8b949e',
+                    color: '#3c3c50',
                     font: { family: 'Inter', size: 11 },
                     boxWidth: 12,
                     padding: 12,
@@ -321,15 +321,15 @@ function PlayerReport({ playerName, playerStats, playerColor, matchType, playerA
         scales: {
             x: {
                 stacked: true,
-                ticks: { stepSize: 1, color: '#7a8899', font: { size: 10 } },
-                grid: { color: 'rgba(255,255,255,0.05)' },
-                border: { color: 'rgba(255,255,255,0.08)' },
+                ticks: { stepSize: 1, color: '#3c3c50', font: { size: 10 } },
+                grid: { color: 'rgba(0,0,0,0.08)' },
+                border: { color: 'rgba(0,0,0,0.12)' },
             },
             y: {
                 stacked: true,
-                ticks: { color: '#e8edf5', font: { size: 11, weight: '600' } },
+                ticks: { color: '#1c1c1e', font: { size: 11, weight: '600' } },
                 grid: { display: false },
-                border: { color: 'rgba(255,255,255,0.08)' },
+                border: { color: 'rgba(0,0,0,0.12)' },
             },
         },
     };

@@ -12,7 +12,7 @@ export default function Dashboard() {
     const navigate = useNavigate();
 
     async function handleSignOut() {
-        await signOut(); // signOut hace window.location.replace('/login') internamente
+        await signOut(); // signOut hace window.location.replace('/') internamente
     }
     const [deletingId, setDeletingId] = useState(null);
     const [confirmId, setConfirmId]   = useState(null);

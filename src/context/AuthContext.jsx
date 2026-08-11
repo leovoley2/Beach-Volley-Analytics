@@ -149,7 +149,7 @@ export function AuthProvider({ children }) {
             setLoading(false);
         }
         // Forzar recarga completa del navegador para limpiar todo estado
-        window.location.replace('/login');
+        window.location.replace('/');
     }
 
     const isPro  = subscription?.plan === 'pro'  && subscription?.status === 'active';
