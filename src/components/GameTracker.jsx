@@ -97,6 +97,35 @@ function computeSetScores(actions, numSets, ownPlayerIds) {
     return scores;
 }
 
+// Puntos necesarios para ganar un set. El último set posible (tiebreak) es a 15; el resto a 21.
+function setTargetScore(setIndex, setsToWin) {
+    const maxSets = setsToWin * 2 - 1;          // best-of-3 → 3 sets máximo
+    const isTieBreak = setIndex === maxSets - 1; // el último set posible
+    return isTieBreak ? 15 : 21;
+}
+
+// ¿Está terminado el set y quién lo ganó? Devuelve 'own' | 'opponent' | null.
+// Un set se gana al alcanzar el objetivo (21/15) con ventaja mínima de 2 puntos.
+function setWinner(setScore, setIndex, setsToWin) {
+    const target = setTargetScore(setIndex, setsToWin);
+    const { own, opponent } = setScore;
+    if (own >= target && own >= opponent + 2) return 'own';
+    if (opponent >= target && opponent >= own + 2) return 'opponent';
+    return null;
+}
+
+// Marcador de SETS GANADOS derivado de los marcadores reales de cada set.
+// Fuente de verdad única: evita que el contador de sets quede desincronizado de
+// lo que realmente pasó en la cancha (bug: ganar 2 sets sin declararse ganador).
+function computeSetsWon(derivedSets, setsToWin) {
+    const won = { own: 0, opponent: 0 };
+    derivedSets.forEach((s, i) => {
+        const w = setWinner(s, i, setsToWin);
+        if (w) won[w]++;
+    });
+    return won;
+}
+
 // --- Componente Principal ---
 function GameTracker({ onFinishMatch }) {
     const { currentMatch, updateMatch, endCurrentMatch } = useMatches();
@@ -118,14 +147,40 @@ function GameTracker({ onFinishMatch }) {
         : [{ own: 0, opponent: 0 }];
     const currentSetScore = derivedSets[currentSetIndex] || { own: 0, opponent: 0 };
 
-    // Derivado del estado real del partido: no depende de estado local para evitar desfases
+    // SETS GANADOS derivados de los marcadores reales de cada set (fuente de verdad única).
+    // Así, en cuanto un equipo cierra su 2º set, el marcador y el fin de partido se
+    // reflejan de inmediato, sin depender de un contador manual que puede desincronizarse.
+    const setsWon = currentMatch
+        ? computeSetsWon(derivedSets, currentMatch.setsToWin)
+        : { own: 0, opponent: 0 };
+
+    // El partido termina en cuanto un equipo gana `setsToWin` sets (2 en voleibol de playa).
     const isMatchOver = currentMatch
-        ? (currentMatch.score.own >= currentMatch.setsToWin || currentMatch.score.opponent >= currentMatch.setsToWin)
+        ? (setsWon.own >= currentMatch.setsToWin || setsWon.opponent >= currentMatch.setsToWin)
         : false;
+    const matchWinnerName = currentMatch
+        ? (setsWon.own > setsWon.opponent ? currentMatch.ownTeamName : currentMatch.opponentTeamName)
+        : '';
 
     if (!currentMatch) {
         return <div className="card">No hay ningún partido activo. Ve a "Nuevo Partido" para comenzar.</div>;
     }
+
+    // Construye el estado a persistir a partir de un nuevo log de acciones.
+    // Deriva sets, marcador de sets ganados y estado (completado/en progreso) de forma
+    // consistente para que el ganador se declare en cuanto se cierra el set decisivo.
+    const buildMatchState = (newActions, numSets) => {
+        const newSets = computeSetScores(newActions, numSets, ownPlayerIds);
+        const won = computeSetsWon(newSets, currentMatch.setsToWin);
+        const over = won.own >= currentMatch.setsToWin || won.opponent >= currentMatch.setsToWin;
+        return {
+            ...currentMatch,
+            actions: newActions,
+            sets: newSets,
+            score: won,
+            status: over ? 'completed' : 'in_progress',
+        };
+    };
 
     /**
      * Registra una acción con posición opcional de inicio y fin (para ataques).
@@ -179,13 +234,7 @@ function GameTracker({ onFinishMatch }) {
         }
 
         const newActions = [...(currentMatch.actions || []), newAction];
-        const newSets = computeSetScores(newActions, currentMatch.sets.length, ownPlayerIds);
-
-        updateMatch({
-            ...currentMatch,
-            actions: newActions,
-            sets: newSets,
-        });
+        updateMatch(buildMatchState(newActions, currentMatch.sets.length));
 
         // Resetear selecciones
         setActivePlayerId(null);
@@ -234,55 +283,34 @@ function GameTracker({ onFinishMatch }) {
             timestamp: new Date().toISOString(),
         };
         const newActions = [...(currentMatch.actions || []), adjustAction];
-        const newSets = computeSetScores(newActions, currentMatch.sets.length, ownPlayerIds);
-        updateMatch({ ...currentMatch, actions: newActions, sets: newSets });
+        updateMatch(buildMatchState(newActions, currentMatch.sets.length));
     };
 
     // Deshacer = quitar la última acción (de juego o de ajuste) y recalcular el marcador.
     const handleUndo = () => {
         if (!currentMatch.actions || currentMatch.actions.length === 0) return;
         const newActions = currentMatch.actions.slice(0, -1);
-        const newSets = computeSetScores(newActions, currentMatch.sets.length, ownPlayerIds);
-        updateMatch({ ...currentMatch, actions: newActions, sets: newSets });
+        updateMatch(buildMatchState(newActions, currentMatch.sets.length));
     };
 
+    // "Finalizar Set" ahora solo ABRE el siguiente set. El fin de partido (2 sets ganados)
+    // se detecta automáticamente al cerrarse el set decisivo, no aquí.
     const handleFinishSet = () => {
-        // BUG FIX: don't allow finishing a set if the match is already over
         if (isMatchOver) {
             alert('El partido ya ha finalizado.');
             return;
         }
 
-        const { own, opponent } = currentSetScore;
-        // Tiebreak is the last possible set (setsToWin * 2 - 1), e.g. set 3 in best-of-3
-        const maxSets = currentMatch.setsToWin * 2 - 1;
-        const isTieBreak = currentSetIndex === maxSets - 1;
-        const targetScore = isTieBreak ? 15 : 21;
-
-        const ownWinsSet = own >= targetScore && own >= opponent + 2;
-        const opponentWinsSet = opponent >= targetScore && opponent >= own + 2;
-
-        if (!ownWinsSet && !opponentWinsSet) {
+        const targetScore = setTargetScore(currentSetIndex, currentMatch.setsToWin);
+        const winner = setWinner(currentSetScore, currentSetIndex, currentMatch.setsToWin);
+        if (!winner) {
             alert(`Ningún equipo ha ganado el set. Un equipo debe alcanzar ${targetScore} puntos con ventaja de 2.`);
             return;
         }
 
-        const newScore = { ...currentMatch.score };
-        if (ownWinsSet) { newScore.own++; } else { newScore.opponent++; }
-
-        const ownWinsMatch = newScore.own === currentMatch.setsToWin;
-        const opponentWinsMatch = newScore.opponent === currentMatch.setsToWin;
-
-        if (ownWinsMatch || opponentWinsMatch) {
-            // Marcar 'completed' en memoria: el efecto de sync de MatchApp lo persiste en BD.
-            // Así el partido no queda eternamente 'in_progress' si el usuario cierra la pestaña.
-            updateMatch({ ...currentMatch, score: newScore, status: 'completed' });
-            alert(`¡Partido finalizado! Ganador: ${ownWinsMatch ? currentMatch.ownTeamName : currentMatch.opponentTeamName}`);
-        } else {
-            // Crece el nº de sets en 1; el marcador del set nuevo (0-0) sale de recalcular el log.
-            const newSets = computeSetScores(currentMatch.actions, currentMatch.sets.length + 1, ownPlayerIds);
-            updateMatch({ ...currentMatch, score: newScore, sets: newSets });
-        }
+        // El set actual está ganado pero el partido continúa → añadir el siguiente set
+        // para que los nuevos puntos se registren allí. El marcador de sets se re-deriva.
+        updateMatch(buildMatchState(currentMatch.actions, currentMatch.sets.length + 1));
     };
 
     // Helper: ¿el fundamento actual requiere marcado en cancha?
@@ -296,11 +324,11 @@ function GameTracker({ onFinishMatch }) {
                 <h4>Sets Ganados</h4>
                 <div className="team-score">
                     <h3>{currentMatch.ownTeamName}</h3>
-                    <span>{currentMatch.score.own}</span>
+                    <span>{setsWon.own}</span>
                 </div>
                 <div className="team-score">
                     <h3>{currentMatch.opponentTeamName}</h3>
-                    <span>{currentMatch.score.opponent}</span>
+                    <span>{setsWon.opponent}</span>
                 </div>
             </div>
 
@@ -328,7 +356,7 @@ function GameTracker({ onFinishMatch }) {
             {isMatchOver && (
                 <div className="card match-over-banner">
                     <h3>Partido Finalizado</h3>
-                    <p>Ganador: {currentMatch.score.own > currentMatch.score.opponent ? currentMatch.ownTeamName : currentMatch.opponentTeamName}</p>
+                    <p>Ganador: {matchWinnerName}</p>
                 </div>
             )}
 
@@ -518,7 +546,9 @@ function GameTracker({ onFinishMatch }) {
             <div className="card">
                 <h4>Controles</h4>
                 <div className="button-group">
-                    <button onClick={handleUndo} disabled={isMatchOver}>↩ Deshacer</button>
+                    {/* Deshacer siempre disponible: permite corregir el último punto aunque
+                        haya cerrado el partido (p. ej. un marcado por error). */}
+                    <button onClick={handleUndo}>↩ Deshacer</button>
                     <button onClick={handleFinishSet} disabled={isMatchOver}>Finalizar Set</button>
                     <button
                         onClick={() => onFinishMatch ? onFinishMatch() : endCurrentMatch()}
