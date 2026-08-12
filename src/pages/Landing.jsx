@@ -114,9 +114,9 @@ export default function Landing() {
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 maxWidth: 1120, margin: '0 auto', padding: '1.1rem 1.5rem',
             }}>
-                <div style={{ fontWeight: 800, fontSize: '1.05rem', letterSpacing: '-0.02em' }}>
-                    🏐 Beach Volley <span style={{ color: 'var(--accent)' }}>Analytics</span>
-                </div>
+                <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }} aria-label="Beach Volley Analytics — inicio">
+                    <img src="/logo.png" alt="Beach Volley Analytics" style={{ height: 40, display: 'block' }} />
+                </Link>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <Link to="/login" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 600, textDecoration: 'none' }}>
                         Iniciar sesión
