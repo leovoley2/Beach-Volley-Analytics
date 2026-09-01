@@ -115,7 +115,7 @@ export default function Landing() {
                 maxWidth: 1120, margin: '0 auto', padding: '1.1rem 1.5rem',
             }}>
                 <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }} aria-label="Beach Volley Analytics — inicio">
-                    <img src="/logo.png" alt="Beach Volley Analytics" style={{ height: 40, display: 'block' }} />
+                    <img src="/logo 1 oficial.png" alt="Beach Volley Analytics" style={{ height: 40, display: 'block' }} />
                 </Link>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <Link to="/login" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 600, textDecoration: 'none' }}>
