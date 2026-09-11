@@ -3,6 +3,7 @@ import { useMatches } from '../context/MatchContext';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import PlayerReport from './PlayerReport';
+import { SKILL_DETAILS, baseSkillOf } from '../lib/scoutingDetails';
 
 const SKILLS = ['Saque', 'Recepción', 'Armado', 'Ataque Contundente', 'Ataque Coloque', 'Ataque 2 Toques', 'Bloqueo', 'Defensa'];
 const SVG_WIDTH = 500, SVG_HEIGHT = 300, COURT_X_PADDING = 50, COURT_Y_PADDING = 50;
@@ -136,6 +137,8 @@ function ReportViewer({ onGoToTracker, isPaid = false, matchId = null }) {
     const [complexFilter, setComplexFilter] = useState(null);
     const [playerFilter, setPlayerFilter] = useState(null);
     const [attackFilter, setAttackFilter] = useState(null);
+    // Filtros por detalle de scouting: { [dimKey]: opción } (p. ej. { tipoSaque: 'Flotante' })
+    const [detailFilters, setDetailFilters] = useState({});
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
     const reportContentRef = useRef(null);
 
@@ -155,6 +158,24 @@ function ReportViewer({ onGoToTracker, isPaid = false, matchId = null }) {
         setComplexFilter(null);
         setPlayerFilter(null);
         setAttackFilter(null);
+        setDetailFilters({});
+    };
+
+    // Alterna un filtro de detalle (volver a pulsar la misma opción lo quita).
+    const toggleDetailFilter = (key, value) => {
+        setDetailFilters(prev => {
+            const next = { ...prev };
+            if (next[key] === value) delete next[key];
+            else next[key] = value;
+            return next;
+        });
+    };
+    const clearDetailFilter = (key) => {
+        setDetailFilters(prev => {
+            const next = { ...prev };
+            delete next[key];
+            return next;
+        });
     };
 
     const allPlayers = useMemo(() => {
@@ -187,7 +208,23 @@ function ReportViewer({ onGoToTracker, isPaid = false, matchId = null }) {
         return identifiers;
     }, [selectedMatch]);
 
-    // Actions filtered by set + complex + player (used for stats, charts, and court map)
+    // Dimensiones de detalle que realmente tienen datos en este partido (para mostrar filtros).
+    const availableDetailDims = useMemo(() => {
+        if (!selectedMatch) return [];
+        const acts = (selectedMatch.actions || []).filter(a => a.skill && a.detail);
+        const out = [];
+        Object.entries(SKILL_DETAILS).forEach(([base, dims]) => {
+            dims.forEach(dim => {
+                const options = dim.options.filter(opt =>
+                    acts.some(a => baseSkillOf(a.skill) === base && a.detail?.[dim.key] === opt)
+                );
+                if (options.length > 0) out.push({ base, dim, options });
+            });
+        });
+        return out;
+    }, [selectedMatch]);
+
+    // Actions filtered by set + complex + player + attack + detalles (stats, charts, court map)
     const filteredActions = useMemo(() => {
         if (!selectedMatch) return [];
         // Excluir acciones de ajuste manual del marcador (no son acciones de juego).
@@ -196,8 +233,11 @@ function ReportViewer({ onGoToTracker, isPaid = false, matchId = null }) {
         if (complexFilter !== null) all = all.filter(a => a.complex === complexFilter);
         if (playerFilter !== null) all = all.filter(a => a.playerId === playerFilter);
         if (attackFilter !== null) all = all.filter(a => a.skill === attackFilter);
+        Object.entries(detailFilters).forEach(([key, value]) => {
+            all = all.filter(a => a.detail?.[key] === value);
+        });
         return all;
-    }, [selectedMatch, selectedSet, complexFilter, playerFilter, attackFilter]);
+    }, [selectedMatch, selectedSet, complexFilter, playerFilter, attackFilter, detailFilters]);
 
     // Stats derived from filtered actions
     const stats = useMemo(() => {
@@ -232,6 +272,7 @@ function ReportViewer({ onGoToTracker, isPaid = false, matchId = null }) {
             const p = allPlayers.find(p => p.id === playerFilter);
             if (p) filenameParts.push(p.name.replace(/\s+/g, '_'));
         }
+        Object.values(detailFilters).forEach(v => filenameParts.push(String(v).replace(/\s+/g, '_')));
         pdf.save(`${filenameParts.join('_')}.pdf`);
 
         setIsGeneratingPdf(false);
@@ -380,6 +421,29 @@ function ReportViewer({ onGoToTracker, isPaid = false, matchId = null }) {
                             </span>
                         )}
                     </div>
+
+                    {/* Filtros por detalle de scouting — solo dimensiones con datos en el partido */}
+                    {availableDetailDims.map(({ base, dim, options }) => (
+                        <div className="complex-filter-bar" key={`${base}-${dim.key}`}>
+                            <span className="complex-filter-label">{base} · {dim.label}:</span>
+                            <button
+                                className={!detailFilters[dim.key] ? 'complex-tab active' : 'complex-tab'}
+                                onClick={() => clearDetailFilter(dim.key)}
+                            >
+                                Todos
+                            </button>
+                            {options.map(opt => (
+                                <button
+                                    key={opt}
+                                    className={detailFilters[dim.key] === opt ? 'complex-tab active' : 'complex-tab'}
+                                    onClick={() => toggleDetailFilter(dim.key, opt)}
+                                    title={`Mostrar solo: ${base} — ${dim.label} = ${opt}`}
+                                >
+                                    {opt}
+                                </button>
+                            ))}
+                        </div>
+                    ))}
 
                     <div ref={reportContentRef} className="pdf-container">
                         {/* Header */}
