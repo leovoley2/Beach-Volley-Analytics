@@ -552,6 +552,9 @@ function ReportViewer({ onGoToTracker, isPaid = false, matchId = null }) {
                                         if (complexFilter !== null) setActions = setActions.filter(a => a.complex === complexFilter);
                                         if (playerFilter !== null) setActions = setActions.filter(a => a.playerId === playerFilter);
                                         if (attackFilter !== null) setActions = setActions.filter(a => a.skill === attackFilter);
+                                        Object.entries(detailFilters).forEach(([key, value]) => {
+                                            setActions = setActions.filter(a => a.detail?.[key] === value);
+                                        });
                                         return (
                                             <div key={i} className="court-set-wrap">
                                                 <p className="court-set-label">Set {i + 1} · {selectedMatch.sets[i].own}–{selectedMatch.sets[i].opponent}</p>
