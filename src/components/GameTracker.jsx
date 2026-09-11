@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useMatches } from '../context/MatchContext';
+import { SKILL_DETAILS, baseSkillOf } from '../lib/scoutingDetails';
 
 // --- Constantes del Componente ---
 const SKILLS = ['Saque', 'Recepción', 'Armado', 'Ataque', 'Bloqueo', 'Defensa'];
@@ -133,6 +134,8 @@ function GameTracker({ onFinishMatch }) {
     const [selectedSkill, setSelectedSkill] = useState(null);
     const [attackType, setAttackType] = useState(null);
     const [selectedOutcome, setSelectedOutcome] = useState(null);
+    // Detalles opcionales del fundamento (p. ej. { tipoSaque: 'Flotante' }). Se limpian al registrar.
+    const [actionDetails, setActionDetails] = useState({});
     // Complejo actual K1 / K2 — se actualiza automáticamente al registrar ciertas acciones
     const [currentComplex, setCurrentComplex] = useState(null);
 
@@ -217,6 +220,11 @@ function GameTracker({ onFinishMatch }) {
         }
         // Para Armado y Ataque, mantiene el complejo actual (null si no se ha definido aún)
 
+        // Detalles opcionales de scouting (solo los que tengan valor seleccionado).
+        const cleanDetail = Object.fromEntries(
+            Object.entries(actionDetails).filter(([, v]) => v != null)
+        );
+
         const newAction = {
             playerId: activePlayerId,
             skill: finalSkill,
@@ -224,6 +232,7 @@ function GameTracker({ onFinishMatch }) {
             setIndex: currentSetIndex,
             complex,                              // ← K1 o K2
             timestamp: new Date().toISOString(),
+            ...(Object.keys(cleanDetail).length > 0 && { detail: cleanDetail }),
             ...(startPos && { startX: startPos.x, startY: startPos.y }),
             ...(endPos && { x: endPos.x, y: endPos.y }),
         };
@@ -244,6 +253,7 @@ function GameTracker({ onFinishMatch }) {
         setAttackType(null);
         setSelectedOutcome(null);
         setAttackStartPos(null);
+        setActionDetails({});
     };
 
     const handleCourtClick = (e) => {
@@ -316,6 +326,21 @@ function GameTracker({ onFinishMatch }) {
     // Helper: ¿el fundamento actual requiere marcado en cancha?
     const requiresCourt = selectedSkill === 'Ataque';
 
+    // Fundamento base para decidir qué detalles de scouting mostrar.
+    // En modo scouting siempre se registra Ataque; en completo depende del fundamento elegido.
+    const baseSkillForDetails = currentMatch.matchType === 'scouting'
+        ? 'Ataque'
+        : baseSkillOf(selectedSkill);
+    const detailDims = baseSkillForDetails ? (SKILL_DETAILS[baseSkillForDetails] || []) : [];
+
+    // Alternar una opción de detalle (volver a pulsar la deselecciona).
+    const toggleDetail = (dimKey, option) => {
+        setActionDetails(prev => ({
+            ...prev,
+            [dimKey]: prev[dimKey] === option ? undefined : option,
+        }));
+    };
+
     // --- Renderizado ---
     return (
         <div className="game-tracker">
@@ -387,7 +412,7 @@ function GameTracker({ onFinishMatch }) {
                     <h4>2. Selecciona Fundamento</h4>
                     <div className="button-grid">
                         {SKILLS.map(s => (
-                            <button key={s} onClick={() => { setSelectedSkill(s); setAttackType(null); }} disabled={!activePlayerId} className={selectedSkill === s ? 'active' : ''}>{s}</button>
+                            <button key={s} onClick={() => { setSelectedSkill(s); setAttackType(null); setActionDetails({}); }} disabled={!activePlayerId} className={selectedSkill === s ? 'active' : ''}>{s}</button>
                         ))}
                     </div>
                 </div>
@@ -423,6 +448,34 @@ function GameTracker({ onFinishMatch }) {
                             <span className="attack-type-sub">Pase directo al rival</span>
                         </button>
                     </div>
+                </div>
+            )}
+
+            {/* PASO 2.b: Detalles del fundamento (opcional, según el fundamento activo) */}
+            {detailDims.length > 0 && (
+                <div className={`card ${(!selectedSkill && currentMatch.matchType !== 'scouting') || isMatchOver ? 'disabled' : ''}`}>
+                    <h4>
+                        2.b. Detalles del fundamento{' '}
+                        <span style={{ fontWeight: 400, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                            (opcional)
+                        </span>
+                    </h4>
+                    {detailDims.map(dim => (
+                        <div key={dim.key} className="detail-dimension" style={{ marginBottom: '0.75rem' }}>
+                            <h5 style={{ margin: '0.25rem 0 0.4rem' }}>{dim.label}</h5>
+                            <div className="button-group">
+                                {dim.options.map(opt => (
+                                    <button
+                                        key={opt}
+                                        onClick={() => toggleDetail(dim.key, opt)}
+                                        className={actionDetails[dim.key] === opt ? 'active' : ''}
+                                    >
+                                        {opt}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
                 </div>
             )}
 

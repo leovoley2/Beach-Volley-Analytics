@@ -6,6 +6,8 @@ import {
     Title, Tooltip, Legend
 } from 'chart.js';
 
+import { SKILL_DETAILS, baseSkillOf } from '../lib/scoutingDetails';
+
 Chart.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const ALL_SKILLS = ['Saque', 'Recepción', 'Armado', 'Ataque Contundente', 'Ataque Coloque', 'Ataque 2 Toques', 'Bloqueo', 'Defensa'];
@@ -71,6 +73,41 @@ const OUTCOME_SYMBOL = {
     'Negativo':       '-',
     'Doble Negativo': '=',
 };
+
+/**
+ * Desglose de detalles de scouting para las acciones de un jugador.
+ * Para cada fundamento con detalles definidos, cuenta cuántas acciones caen en cada opción
+ * (p. ej. cuántos saques Flotante vs Potencia) y su resultado, para reflejar tendencias.
+ * Devuelve: [{ base, dimResults: [{ dim, rows: [{ opt, total, dp, pos, neg, dn }], dimTotal }] }]
+ */
+function computeDetailBreakdown(playerActions) {
+    const result = [];
+    Object.entries(SKILL_DETAILS).forEach(([base, dims]) => {
+        const skillActions = (playerActions || []).filter(
+            a => baseSkillOf(a.skill) === base && a.detail
+        );
+        if (skillActions.length === 0) return;
+
+        const dimResults = dims.map(dim => {
+            const rows = dim.options.map(opt => {
+                const acts = skillActions.filter(a => a.detail?.[dim.key] === opt);
+                return {
+                    opt,
+                    total: acts.length,
+                    dp: acts.filter(a => a.outcome === 'Doble Positivo').length,
+                    pos: acts.filter(a => a.outcome === 'Positivo').length,
+                    neg: acts.filter(a => a.outcome === 'Negativo').length,
+                    dn: acts.filter(a => a.outcome === 'Doble Negativo').length,
+                };
+            }).filter(r => r.total > 0);
+            const dimTotal = rows.reduce((s, r) => s + r.total, 0);
+            return { dim, rows, dimTotal };
+        }).filter(d => d.rows.length > 0);
+
+        if (dimResults.length > 0) result.push({ base, dimResults });
+    });
+    return result;
+}
 
 /** Timeline of actions grouped by rally (point) */
 function PointChronology({ playerActions, allSetActions }) {
@@ -352,6 +389,9 @@ function PlayerReport({ playerName, playerStats, playerColor, matchType, playerA
     );
     const totalActions = totalsByOutcome.reduce((a, b) => a + b, 0);
 
+    // Desglose de detalles de scouting (tipo de saque, zona de recepción, etc.)
+    const detailBreakdown = computeDetailBreakdown(playerActions);
+
     // Eficiencia general: ((# + +) - (- + =)) × 100 / total
     const overallEff = totalActions > 0
         ? Number((((totalsByOutcome[0] + totalsByOutcome[1]) - (totalsByOutcome[3] + totalsByOutcome[4])) / totalActions * 100).toFixed(0))
@@ -445,6 +485,52 @@ function PlayerReport({ playerName, playerStats, playerColor, matchType, playerA
                     </tbody>
                 </table>
             </div>
+
+            {/* Detalle de Scouting — tendencias por tipo de saque, zona de recepción, etc. */}
+            {detailBreakdown.length > 0 && (
+                <div className="stats-table-wrap">
+                    <p className="chart-label">Detalle de Scouting</p>
+                    {detailBreakdown.map(({ base, dimResults }) => (
+                        <div key={base} style={{ marginBottom: '1.25rem' }}>
+                            <h5 style={{ margin: '0.5rem 0 0.5rem', color: '#1c1c1e' }}>{base}</h5>
+                            {dimResults.map(({ dim, rows, dimTotal }) => (
+                                <table key={dim.key} className="compact-table" style={{ marginBottom: '0.6rem' }}>
+                                    <thead>
+                                        <tr>
+                                            <th>{dim.label}</th>
+                                            <th>Total</th>
+                                            <th title="% de uso dentro del fundamento">%Uso</th>
+                                            <th title="Doble Positivo">#</th>
+                                            <th title="Positivo">+</th>
+                                            <th title="Negativo">-</th>
+                                            <th title="Doble Negativo">=</th>
+                                            <th title="Eficacia = # × 100 / Total">%Efic.</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {rows.map(r => {
+                                            const uso = dimTotal > 0 ? Math.round((r.total / dimTotal) * 100) : 0;
+                                            const eficacia = r.total > 0 ? Math.round((r.dp / r.total) * 100) : 0;
+                                            return (
+                                                <tr key={r.opt}>
+                                                    <td><strong>{r.opt}</strong></td>
+                                                    <td>{r.total}</td>
+                                                    <td><strong>{uso}%</strong></td>
+                                                    <td className="cell-dp">{r.dp}</td>
+                                                    <td className="cell-pos">{r.pos}</td>
+                                                    <td className="cell-neg">{r.neg}</td>
+                                                    <td className="cell-dn">{r.dn}</td>
+                                                    <td><strong style={{ color: eficacia > 0 ? '#22c55e' : '#7a8899' }}>{eficacia}%</strong></td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            ))}
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
