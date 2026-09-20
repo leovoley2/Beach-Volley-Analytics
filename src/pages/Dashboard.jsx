@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useMatchesDB } from '../hooks/useMatchesDB';
+import { LEGAL } from '../lib/legalConfig';
 
 const STATUS_LABEL = { in_progress: 'En progreso', completed: 'Completado' };
 const STATUS_COLOR = { in_progress: '#f97316', completed: '#22c55e' };
@@ -29,6 +30,11 @@ export default function Dashboard() {
 
     const pct = Math.min((monthlyUsed / monthlyLimit) * 100, 100);
 
+    // Enlace de soporte técnico con asunto y datos del usuario pre-llenados
+    const supportMailto = `mailto:${LEGAL.supportEmail}`
+        + `?subject=${encodeURIComponent('Soporte — Beach Volley Analytics')}`
+        + `&body=${encodeURIComponent(`\n\n---\nUsuario: ${user?.email || ''}\nPlan: ${subscription?.plan || 'free'}`)}`;
+
     return (
         <div style={{ minHeight: '100vh' }}>
             {/* Topbar */}
@@ -40,6 +46,9 @@ export default function Dashboard() {
                 </div>
                 <div className="topbar-right">
                     <span className="plan-chip">{({ pro: 'PRO', team: 'PRO ANUAL' }[subscription?.plan]) || 'FREE'}</span>
+                    <a href={supportMailto} title={`Soporte técnico · ${LEGAL.supportEmail}`} style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        💬 Soporte
+                    </a>
                     <div className="avatar" title={displayName}>{initials}</div>
                     <button onClick={handleSignOut} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.8rem' }}>Salir</button>
                 </div>
@@ -163,6 +172,14 @@ export default function Dashboard() {
                         })}
                     </div>
                 )}
+
+                {/* Soporte técnico */}
+                <div style={{ marginTop: '2.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)', textAlign: 'center', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                    ¿Necesitas ayuda o tienes un problema? Escríbenos a{' '}
+                    <a href={supportMailto} style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
+                        {LEGAL.supportEmail}
+                    </a>
+                </div>
             </div>
 
             {/* Modal confirmar eliminación */}

@@ -9,6 +9,7 @@ export const LEGAL = {
     companyId:    '',                            // RUC / NIF / identificación fiscal (opcional)
     address:      'Lima, Perú',                  // domicilio
     contactEmail: 'leovoley2@gmail.com',         // correo de contacto / privacidad
+    supportEmail: 'beachvolleyanalitic@gmail.com', // correo de soporte técnico para usuarios
     governingLaw: 'la República del Perú',       // ley aplicable
     jurisdiction: 'los tribunales de Lima, Perú',// jurisdicción
     minAge:       16,                            // edad mínima de uso

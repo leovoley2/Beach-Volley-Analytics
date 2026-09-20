@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { LEGAL } from '../lib/legalConfig';
 
 const FEATURES = [
     { icon: '🎯', title: 'Tracker en vivo', text: 'Registra saque, recepción, ataque y defensa acción por acción, sin perder el ritmo del partido.' },
@@ -247,6 +248,7 @@ export default function Landing() {
                     <div style={{ display: 'flex', gap: '1.25rem', fontSize: '0.82rem' }}>
                         <Link to="/terms" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Términos</Link>
                         <Link to="/privacy" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Privacidad</Link>
+                        <a href={`mailto:${LEGAL.supportEmail}?subject=${encodeURIComponent('Soporte — Beach Volley Analytics')}`} style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Soporte</a>
                         <Link to="/login" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Iniciar sesión</Link>
                     </div>
                 </div>
