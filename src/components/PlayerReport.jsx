@@ -1,14 +1,28 @@
 import React, { useState } from 'react';
-import { Bar } from 'react-chartjs-2';
+import { Bar, Radar } from 'react-chartjs-2';
 import {
     Chart,
     CategoryScale, LinearScale, BarElement,
+    RadialLinearScale, PointElement, LineElement, Filler,
     Title, Tooltip, Legend
 } from 'chart.js';
 
 import { SKILL_DETAILS, baseSkillOf } from '../lib/scoutingDetails';
 
-Chart.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+Chart.register(
+    CategoryScale, LinearScale, BarElement,
+    RadialLinearScale, PointElement, LineElement, Filler,
+    Title, Tooltip, Legend
+);
+
+// Convierte un color hex (#rrggbb) a rgba con la opacidad indicada.
+function withAlpha(hex, alpha) {
+    const h = (hex || '#f97316').replace('#', '');
+    const r = parseInt(h.substring(0, 2), 16);
+    const g = parseInt(h.substring(2, 4), 16);
+    const b = parseInt(h.substring(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 const ALL_SKILLS = ['Saque', 'Recepción', 'Armado', 'Ataque Contundente', 'Ataque Coloque', 'Ataque 2 Toques', 'Bloqueo', 'Defensa'];
 
@@ -494,7 +508,55 @@ function PlayerReport({ playerName, playerStats, playerColor, matchType, playerA
                         <div key={base} style={{ marginBottom: '1.25rem' }}>
                             <h5 style={{ margin: '0.5rem 0 0.5rem', color: '#1c1c1e' }}>{base}</h5>
                             {dimResults.map(({ dim, rows, dimTotal }) => (
-                                <table key={dim.key} className="compact-table" style={{ marginBottom: '0.6rem' }}>
+                                <React.Fragment key={dim.key}>
+                                    {/* Recepción: gráfica de araña (radar) por zona */}
+                                    {base === 'Recepción' && dim.options.length >= 3 && (() => {
+                                        const zoneTotals = dim.options.map(opt => {
+                                            const r = rows.find(row => row.opt === opt);
+                                            return r ? r.total : 0;
+                                        });
+                                        const radarData = {
+                                            labels: dim.options,
+                                            datasets: [{
+                                                label: 'Recepciones',
+                                                data: zoneTotals,
+                                                backgroundColor: withAlpha(playerColor, 0.22),
+                                                borderColor: playerColor || '#f97316',
+                                                borderWidth: 2,
+                                                pointBackgroundColor: playerColor || '#f97316',
+                                                pointBorderColor: '#fff',
+                                                pointRadius: 3,
+                                            }],
+                                        };
+                                        const maxVal = Math.max(...zoneTotals, 0);
+                                        const radarOptions = {
+                                            responsive: true,
+                                            maintainAspectRatio: false,
+                                            plugins: {
+                                                legend: { display: false },
+                                                tooltip: { callbacks: { label: (ctx) => ` ${ctx.label}: ${ctx.parsed.r} recepciones` } },
+                                            },
+                                            scales: {
+                                                r: {
+                                                    beginAtZero: true,
+                                                    suggestedMax: maxVal + 1,
+                                                    angleLines: { color: 'rgba(0,0,0,0.12)' },
+                                                    grid: { color: 'rgba(0,0,0,0.10)' },
+                                                    pointLabels: { color: '#1c1c1e', font: { family: 'Inter', size: 11, weight: '600' } },
+                                                    ticks: { display: true, precision: 0, color: '#6d6d72', backdropColor: 'transparent', font: { size: 9 } },
+                                                },
+                                            },
+                                        };
+                                        return (
+                                            <div className="reception-radar-wrap">
+                                                <p className="chart-label" style={{ textAlign: 'center' }}>Mapa de recepción por zona</p>
+                                                <div style={{ height: '250px', maxWidth: '340px', margin: '0 auto' }}>
+                                                    <Radar data={radarData} options={radarOptions} />
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+                                    <table className="compact-table" style={{ marginBottom: '0.6rem' }}>
                                     <thead>
                                         <tr>
                                             <th>{dim.label}</th>
@@ -525,7 +587,8 @@ function PlayerReport({ playerName, playerStats, playerColor, matchType, playerA
                                             );
                                         })}
                                     </tbody>
-                                </table>
+                                    </table>
+                                </React.Fragment>
                             ))}
                         </div>
                     ))}
