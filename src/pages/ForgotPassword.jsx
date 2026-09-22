@@ -20,8 +20,17 @@ export default function ForgotPassword() {
         });
 
         setLoading(false);
-        if (error) setError(error.message);
-        else setSent(true);
+        if (error) {
+            const msg = error.message || '';
+            if (error.status === 429 || error.code === 'over_email_send_rate_limit' || /rate limit/i.test(msg)) {
+                // Límite de envío de correos de Supabase (email de recuperación).
+                setError('Estamos recibiendo muchas solicitudes en este momento. Espera unos minutos e inténtalo de nuevo.');
+            } else {
+                setError(msg);
+            }
+        } else {
+            setSent(true);
+        }
     }
 
     if (sent) {

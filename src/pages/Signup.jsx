@@ -27,8 +27,19 @@ export default function Signup() {
         setLoading(true);
         const { error } = await signUp(email, password, fullName);
         setLoading(false);
-        if (error) setError(error.message);
-        else setSuccess(true);
+        if (error) {
+            const msg = error.message || '';
+            if (error.status === 429 || error.code === 'over_email_send_rate_limit' || /rate limit/i.test(msg)) {
+                // Límite de envío de correos de Supabase (confirmación de cuenta).
+                setError('Estamos recibiendo muchos registros en este momento. Espera unos minutos e inténtalo de nuevo.');
+            } else if (/already registered|already exists|user already/i.test(msg)) {
+                setError('Ese correo ya tiene una cuenta. Inicia sesión o recupera tu contraseña.');
+            } else {
+                setError(msg);
+            }
+        } else {
+            setSuccess(true);
+        }
     }
 
     async function handleGoogle() {
