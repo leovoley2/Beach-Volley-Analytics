@@ -772,6 +772,10 @@ td {
 
 .sets-summary {
     margin-bottom: 1.5rem;
+    /* La tabla usa white-space:nowrap y nombres de equipo largos: si no se
+       desplaza dentro de su caja, desborda la pantalla en móviles. */
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .sets-summary h4 {
@@ -1095,6 +1099,7 @@ td {
     border-radius: var(--radius);
     padding: 0.9rem 1rem;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* PDF overrides for PlayerReport */
@@ -1489,4 +1494,45 @@ td {
     border-style: dashed;
     color: #14b8a6;
     box-shadow: 0 0 16px rgba(20, 184, 166, 0.35);
+}
+
+/* ===================================================
+   RESPONSIVE — INFORME / REPORT (móviles)
+   Evita que el contenido del informe se salga de la pantalla en teléfonos.
+=================================================== */
+@media (max-width: 600px) {
+    /* Menos padding para ganar ancho útil (la tarjeta y el PDF se sumaban) */
+    .card { padding: 1.1rem 0.85rem; }
+    .pdf-container { padding: 1rem 0.75rem; }
+
+    /* Cabecera del informe: títulos que no se salgan */
+    .pdf-header h1 { font-size: 1.15rem; }
+    .pdf-header h2 { font-size: 0.9rem; }
+    .pdf-header p,
+    .court-section h4 { line-height: 1.45; }
+
+    /* Barras de filtros más compactas; la etiqueta ocupa su propia línea */
+    .complex-filter-bar,
+    .set-filter-tabs { padding: 0.6rem 0.7rem; gap: 0.4rem; margin-bottom: 1rem; }
+    .set-filter-tabs { padding: 0; }
+    .complex-filter-label { flex-basis: 100%; margin-bottom: 0.1rem; }
+    .complex-filter-info { flex-basis: 100%; margin-left: 0; }
+
+    /* Botones de acción ocupan el ancho disponible */
+    .report-actions { gap: 0.5rem; }
+    .report-actions > button { flex: 1 1 45%; text-align: center; }
+
+    /* Tablas: nunca desbordan; se desplazan dentro de su contenedor */
+    .compact-table { font-size: 0.72rem; }
+    .compact-table th,
+    .compact-table td { padding: 0.4rem 0.45rem; }
+
+    /* Cabecera de jugador y de la sección de cancha, apiladas */
+    .player-summary-chips { flex-wrap: wrap; }
+    .court-section-header { flex-direction: column; }
+}
+
+/* Canchas: una sola columna en pantallas muy angostas para que no se corten */
+@media (max-width: 460px) {
+    .courts-grid { grid-template-columns: 1fr; }
 }
