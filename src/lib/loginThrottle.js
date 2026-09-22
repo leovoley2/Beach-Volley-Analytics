@@ -73,14 +73,20 @@ export function recordFailure(email) {
 
     let lockUntil = s.lockUntil || 0;
     let lockLevel = s.lockLevel || 0;
+    let nextFails = fails;
 
     if (fails >= MAX_ATTEMPTS) {
         lockLevel = lockLevel + 1;
         const lockMs = Math.min(BASE_LOCK_MS * 2 ** (lockLevel - 1), MAX_LOCK_MS);
         lockUntil = now + lockMs;
+        // Reiniciar el contador tras aplicar el bloqueo: si no, `fails` queda en
+        // MAX_ATTEMPTS y CADA intento fallido posterior vuelve a bloquear con
+        // backoff creciente, dejando fuera a usuarios legítimos que solo intentan
+        // recordar su contraseña. Tras el bloqueo vuelven a tener MAX_ATTEMPTS.
+        nextFails = 0;
     }
 
-    write(email, { fails, lockUntil, lockLevel, last: now });
+    write(email, { fails: nextFails, lockUntil, lockLevel, last: now });
     return getLockState(email);
 }
 
