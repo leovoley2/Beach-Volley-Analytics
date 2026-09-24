@@ -148,8 +148,24 @@ export default async function handler(req, res) {
 
                     const patch = { status: 'active', updated_at: new Date().toISOString() };
                     if (nextBilling) patch.current_period_end = nextBilling;
-                    await supabaseAdmin.from('subscriptions').update(patch)
-                        .eq('paypal_subscription_id', subId);
+                    const { data: subRow } = await supabaseAdmin.from('subscriptions').update(patch)
+                        .eq('paypal_subscription_id', subId)
+                        .select('user_id')
+                        .maybeSingle();
+
+                    // Registro del cobro para el panel de administración (idempotente por id de venta).
+                    if (resource.id && resource.amount?.total) {
+                        const { error: beError } = await supabaseAdmin.from('billing_events').upsert({
+                            id:                     resource.id,
+                            user_id:                subRow?.user_id ?? null,
+                            paypal_subscription_id: subId,
+                            amount:                 resource.amount.total,
+                            currency:               resource.amount.currency ?? 'USD',
+                            status:                 'completed',
+                            paid_at:                resource.create_time ?? new Date().toISOString(),
+                        }, { onConflict: 'id' });
+                        if (beError) console.error('billing_events insert error:', beError);
+                    }
                 }
                 break;
             }

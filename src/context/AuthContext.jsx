@@ -17,6 +17,8 @@ export function AuthProvider({ children }) {
     const [session, setSession]           = useState(null);
     const [subscription, setSubscription] = useState(null);
     const [loading, setLoading]           = useState(true);
+    // Sólo para mostrar/ocultar el panel en la UI; api/admin.js verifica el rol en el servidor.
+    const [isAdmin, setIsAdmin]           = useState(false);
 
     // Definida ANTES del useEffect que la usa como dependencia: si se declara después,
     // el array [fetchSubscription] la lee en zona muerta temporal (TDZ) y la app crashea
@@ -43,6 +45,15 @@ export function AuthProvider({ children }) {
         // Nota: NO tocamos `loading` aquí. La app se desbloquea en cuanto hay sesión
         // (ver loadSession); la suscripción se carga en segundo plano, en paralelo
         // con los partidos, para que el dashboard aparezca lo antes posible.
+    }, []);
+
+    const fetchRole = useCallback(async (userId) => {
+        try {
+            const { data } = await supabase.from('profiles').select('role').eq('id', userId).maybeSingle();
+            setIsAdmin(data?.role === 'admin');
+        } catch {
+            setIsAdmin(false);
+        }
     }, []);
 
     useEffect(() => {
@@ -74,12 +85,14 @@ export function AuthProvider({ children }) {
                     loadedUserId = session.user.id;
                     setUser(session.user);           // solo al cambiar de usuario
                     fetchSubscription(session.user.id); // en segundo plano (sin await)
+                    fetchRole(session.user.id);
                 }
             } else {
                 loadedUserId = null;
                 setUser(null);
                 setSession(null);
                 setSubscription(null);
+                setIsAdmin(false);
                 setLoading(false);
             }
         }
@@ -109,7 +122,7 @@ export function AuthProvider({ children }) {
             clearTimeout(safetyTimeout);
             authListener?.unsubscribe();
         };
-    }, [fetchSubscription]);
+    }, [fetchSubscription, fetchRole]);
 
     // Refresca la suscripción desde la BD — útil después de un pago.
     // Memoizada para no reiniciar efectos que la usan como dependencia (ej. PaymentSuccess).
@@ -199,7 +212,7 @@ export function AuthProvider({ children }) {
     return (
         <AuthContext.Provider value={{
             user, session, subscription, loading,
-            isPaid, isPro, isTeam, isCanceling,
+            isPaid, isPro, isTeam, isCanceling, isAdmin,
             signUp, signIn, signInWithGoogle, signOut,
             refreshSubscription, setSubscription,
             updateDisplayName, updatePassword,

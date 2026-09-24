@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
  * Se cierra al hacer clic fuera, con Escape o al elegir una opción.
  */
 export default function AccountMenu() {
-    const { user, subscription, isPaid, isCanceling, signOut } = useAuth();
+    const { user, subscription, isPaid, isCanceling, isAdmin, signOut } = useAuth();
     const [open, setOpen] = useState(false);
     const ref = useRef(null);
     const navigate = useNavigate();
@@ -61,6 +61,11 @@ export default function AccountMenu() {
                         </div>
                     </div>
 
+                    {isAdmin && (
+                        <button type="button" role="menuitem" className="highlight" onClick={() => go('/admin')}>
+                            <span>🛠</span> Panel de administración
+                        </button>
+                    )}
                     <button type="button" role="menuitem" onClick={() => go('/account')}>
                         <span>👤</span> Mi cuenta
                     </button>

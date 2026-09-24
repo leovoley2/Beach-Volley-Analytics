@@ -32,3 +32,23 @@ export async function requireUser(req, res, { bucket, limit }) {
 
     return user;
 }
+
+/**
+ * Como requireUser, pero además exige profiles.role = 'admin'. Ese campo no es
+ * editable por los usuarios (sólo service_role), así que no se puede auto-asignar.
+ */
+export async function requireAdmin(req, res, opts) {
+    const user = await requireUser(req, res, opts);
+    if (!user) return null;
+
+    const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
+    if (profile?.role !== 'admin') {
+        res.status(403).json({ error: 'Forbidden' });
+        return null;
+    }
+    return user;
+}
