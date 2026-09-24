@@ -9,6 +9,33 @@ const SKILLS = ['Saque', 'Recepción', 'Armado', 'Ataque Contundente', 'Ataque C
 const SVG_WIDTH = 500, SVG_HEIGHT = 300, COURT_X_PADDING = 50, COURT_Y_PADDING = 50;
 const COURT_WIDTH = SVG_WIDTH - 2 * COURT_X_PADDING, COURT_HEIGHT = SVG_HEIGHT - 2 * COURT_Y_PADDING;
 
+// PDF: el informe se captura siempre a este ancho CSS (layout de escritorio)
+// y se reparte en hojas A4 con este margen (pt).
+const PDF_CAPTURE_WIDTH = 1000;
+const PDF_MARGIN = 24;
+
+/**
+ * Devuelve dónde terminar la página que empieza en `startY` (px del canvas).
+ * Busca, subiendo desde el límite de la hoja, una fila completamente blanca
+ * (hueco entre secciones) para no cortar una gráfica o una tabla por la mitad.
+ * Si no hay ninguna en el último 30% de la hoja, corta en el límite.
+ */
+function findPageBreak(canvas, startY, pageHeightPx) {
+    const limit = startY + pageHeightPx;
+    if (limit >= canvas.height) return canvas.height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const minY = startY + Math.floor(pageHeightPx * 0.7);
+    for (let y = limit; y > minY; y--) {
+        const row = ctx.getImageData(0, y, canvas.width, 1).data;
+        let blank = true;
+        for (let i = 0; i < row.length; i += 4) {
+            if (row[i] < 250 || row[i + 1] < 250 || row[i + 2] < 250) { blank = false; break; }
+        }
+        if (blank) return y;
+    }
+    return limit;
+}
+
 // Palette of distinct player colors (start marker)
 const PLAYER_COLORS = [
     '#f97316', // orange
@@ -253,29 +280,65 @@ function ReportViewer({ onGoToTracker, isPaid = false, matchId = null }) {
         const reportElement = reportContentRef.current;
         if (!reportElement) return;
         setIsGeneratingPdf(true);
-        const canvas = await html2canvas(reportElement, { scale: 2, backgroundColor: '#ffffff' });
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF({ orientation: 'p', unit: 'pt', format: 'a4' });
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-        const ratio = Math.min(pdfWidth / canvas.width, pdfHeight / canvas.height);
-        pdf.addImage(imgData, 'PNG', (pdfWidth - canvas.width * ratio) / 2, 20, canvas.width * ratio, canvas.height * ratio);
+        try {
+            // Captura a un ancho fijo "de escritorio", sea cual sea el dispositivo: el clon
+            // se renderiza en un iframe de PDF_CAPTURE_WIDTH px, así las media queries
+            // móviles no se aplican y el PDF sale igual desde un teléfono o un PC.
+            const canvas = await html2canvas(reportElement, {
+                scale: 2,
+                backgroundColor: '#ffffff',
+                windowWidth: PDF_CAPTURE_WIDTH,
+                onclone: (_doc, el) => {
+                    el.style.width = `${PDF_CAPTURE_WIDTH}px`;
+                    el.style.maxWidth = 'none';
+                    el.style.margin = '0';
+                    el.style.border = 'none';
+                    el.style.borderRadius = '0';
+                },
+            });
 
-        let filenameParts = ['informe', selectedMatch.ownTeamName.replace(/\s+/g, '_')];
-        if (selectedSet !== null) filenameParts.push(`Set${selectedSet + 1}`);
-        if (complexFilter !== null) filenameParts.push(complexFilter);
-        if (attackFilter !== null) filenameParts.push(
-            attackFilter === 'Ataque Contundente' ? 'Contundente' :
-            attackFilter === 'Ataque Coloque' ? 'Coloque' : '2Toques'
-        );
-        if (playerFilter !== null) {
-            const p = allPlayers.find(p => p.id === playerFilter);
-            if (p) filenameParts.push(p.name.replace(/\s+/g, '_'));
+            const pdf = new jsPDF({ orientation: 'p', unit: 'pt', format: 'a4' });
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const contentWidth = pdfWidth - PDF_MARGIN * 2;
+            const pxPerPt = canvas.width / contentWidth;              // el informe ocupa todo el ancho útil
+            const pageHeightPx = Math.floor((pdfHeight - PDF_MARGIN * 2) * pxPerPt);
+
+            // Reparte el informe en varias hojas A4, cortando en filas en blanco
+            // (espacio entre secciones) para no partir gráficas ni tablas.
+            let y = 0;
+            let first = true;
+            while (y < canvas.height) {
+                const end = findPageBreak(canvas, y, pageHeightPx);
+                const slice = document.createElement('canvas');
+                slice.width = canvas.width;
+                slice.height = end - y;
+                slice.getContext('2d').drawImage(canvas, 0, y, canvas.width, slice.height, 0, 0, canvas.width, slice.height);
+                if (!first) pdf.addPage();
+                pdf.addImage(slice, 'PNG', PDF_MARGIN, PDF_MARGIN, contentWidth, slice.height / pxPerPt);
+                first = false;
+                y = end;
+            }
+
+            let filenameParts = ['informe', selectedMatch.ownTeamName.replace(/\s+/g, '_')];
+            if (selectedSet !== null) filenameParts.push(`Set${selectedSet + 1}`);
+            if (complexFilter !== null) filenameParts.push(complexFilter);
+            if (attackFilter !== null) filenameParts.push(
+                attackFilter === 'Ataque Contundente' ? 'Contundente' :
+                attackFilter === 'Ataque Coloque' ? 'Coloque' : '2Toques'
+            );
+            if (playerFilter !== null) {
+                const p = allPlayers.find(p => p.id === playerFilter);
+                if (p) filenameParts.push(p.name.replace(/\s+/g, '_'));
+            }
+            Object.values(detailFilters).forEach(v => filenameParts.push(String(v).replace(/\s+/g, '_')));
+            pdf.save(`${filenameParts.join('_')}.pdf`);
+        } catch (err) {
+            console.error('Error generando el PDF:', err);
+            alert('No se pudo generar el PDF. Inténtalo de nuevo.');
+        } finally {
+            setIsGeneratingPdf(false);
         }
-        Object.values(detailFilters).forEach(v => filenameParts.push(String(v).replace(/\s+/g, '_')));
-        pdf.save(`${filenameParts.join('_')}.pdf`);
-
-        setIsGeneratingPdf(false);
     };
 
     const handleGoToMatch = () => {
