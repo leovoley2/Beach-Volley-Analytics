@@ -91,8 +91,19 @@ export default async function handler(req, res) {
                 break;
             }
 
-            // Cancelada o expirada → volver a Free.
-            case 'BILLING.SUBSCRIPTION.CANCELLED':
+            // Cancelada → deja de renovarse, pero conserva plan y current_period_end:
+            // el acceso de pago sigue hasta el final del periodo ya pagado (Términos).
+            // is_paid_user() deja de contarla como pagada al llegar esa fecha.
+            case 'BILLING.SUBSCRIPTION.CANCELLED': {
+                if (!subscriptionId) return res.status(200).json({ received: true });
+                await supabaseAdmin.from('subscriptions').update({
+                    status:     'canceled',
+                    updated_at: new Date().toISOString(),
+                }).eq('paypal_subscription_id', subscriptionId);
+                break;
+            }
+
+            // Expirada (terminó su ciclo de cobros) → volver a Free.
             case 'BILLING.SUBSCRIPTION.EXPIRED': {
                 if (!subscriptionId) return res.status(200).json({ received: true });
                 await supabaseAdmin.from('subscriptions').update({

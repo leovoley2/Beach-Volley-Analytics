@@ -3,6 +3,15 @@ import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext(null);
 
+// Las llamadas del cliente Supabase pueden quedarse colgadas (ver lock no-op en
+// lib/supabase.js): en flujos de UI siempre con tope de tiempo.
+function withTimeout(promise, ms = 10000) {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Tiempo de espera agotado. Revisa tu conexión e inténtalo de nuevo.')), ms)),
+    ]);
+}
+
 export function AuthProvider({ children }) {
     const [user, setUser]                 = useState(null);
     const [session, setSession]           = useState(null);
@@ -153,22 +162,47 @@ export function AuthProvider({ children }) {
         window.location.replace('/');
     }
 
-    // Misma regla que is_paid_user() en la BD: el periodo no debe haber vencido
-    // (+3 días de gracia para la renovación); sin fecha se considera vigente.
-    const GRACE_MS = 3 * 24 * 60 * 60 * 1000;
-    const periodOk = !subscription?.current_period_end
-        || new Date(subscription.current_period_end).getTime() > Date.now() - GRACE_MS;
-    const isActive = subscription?.status === 'active' && periodOk;
+    // Cambia el nombre visible: metadata de auth (lo que lee la UI) + profiles.
+    // `user` sólo se actualiza al cambiar de usuario (ver loadSession), así que
+    // lo reemplazamos a mano con el usuario que devuelve updateUser.
+    async function updateDisplayName(fullName) {
+        const { data, error } = await withTimeout(
+            supabase.auth.updateUser({ data: { full_name: fullName } })
+        );
+        if (error) return { error };
+        if (data?.user) setUser(data.user);
+        await withTimeout(
+            supabase.from('profiles').update({ full_name: fullName }).eq('id', data.user.id)
+        ).catch(err => console.error('profiles update error:', err));
+        return { error: null };
+    }
+
+    async function updatePassword(password) {
+        const { error } = await withTimeout(supabase.auth.updateUser({ password }));
+        return { error };
+    }
+
+    // Misma regla que is_paid_user() en la BD:
+    //  - activa: periodo vigente (+3 días de gracia para la renovación); sin fecha = vigente.
+    //  - cancelada: conserva el acceso hasta current_period_end (lo ya pagado).
+    const GRACE_MS  = 3 * 24 * 60 * 60 * 1000;
+    const periodEnd = subscription?.current_period_end ? new Date(subscription.current_period_end).getTime() : null;
+    const isActive  =
+        (subscription?.status === 'active'   && (periodEnd === null || periodEnd > Date.now() - GRACE_MS)) ||
+        (subscription?.status === 'canceled' && periodEnd !== null && periodEnd > Date.now());
     const isPro  = subscription?.plan === 'pro'  && isActive;
     const isTeam = subscription?.plan === 'team' && isActive;
     const isPaid = isPro || isTeam;
+    // Cancelada pero aún dentro del periodo pagado: Pro hasta current_period_end, sin renovación.
+    const isCanceling = isPaid && subscription?.status === 'canceled';
 
     return (
         <AuthContext.Provider value={{
             user, session, subscription, loading,
-            isPaid, isPro, isTeam,
+            isPaid, isPro, isTeam, isCanceling,
             signUp, signIn, signInWithGoogle, signOut,
-            refreshSubscription,
+            refreshSubscription, setSubscription,
+            updateDisplayName, updatePassword,
         }}>
             {children}
         </AuthContext.Provider>

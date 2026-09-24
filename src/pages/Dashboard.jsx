@@ -3,23 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useMatchesDB } from '../hooks/useMatchesDB';
 import { LEGAL } from '../lib/legalConfig';
+import AccountMenu from '../components/AccountMenu';
 
 const STATUS_LABEL = { in_progress: 'En progreso', completed: 'Completado' };
 const STATUS_COLOR = { in_progress: '#f97316', completed: '#22c55e' };
 
 export default function Dashboard() {
-    const { user, subscription, isPaid, signOut } = useAuth();
+    const { user, subscription, isPaid } = useAuth();
     const { matches, loading, monthlyUsed, monthlyLimit, canCreateMatch, deleteMatch } = useMatchesDB();
     const navigate = useNavigate();
-
-    async function handleSignOut() {
-        await signOut(); // signOut hace window.location.replace('/') internamente
-    }
     const [deletingId, setDeletingId] = useState(null);
     const [confirmId, setConfirmId]   = useState(null);
 
     const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuario';
-    const initials    = displayName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 
     async function handleDelete(id) {
         setDeletingId(id);
@@ -45,12 +41,7 @@ export default function Dashboard() {
                     <button onClick={() => navigate('/match/new')}>Nuevo partido</button>
                 </div>
                 <div className="topbar-right">
-                    <span className="plan-chip">{({ pro: 'PRO', team: 'PRO ANUAL' }[subscription?.plan]) || 'FREE'}</span>
-                    <a href={supportMailto} title={`Soporte técnico · ${LEGAL.supportEmail}`} style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                        💬 Soporte
-                    </a>
-                    <div className="avatar" title={displayName}>{initials}</div>
-                    <button onClick={handleSignOut} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.8rem' }}>Salir</button>
+                    <AccountMenu />
                 </div>
             </div>
 

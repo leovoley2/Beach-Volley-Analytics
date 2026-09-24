@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import AccountMenu from '../components/AccountMenu';
 
 const PLANS = [
     {
@@ -56,18 +57,17 @@ const PLANS = [
 ];
 
 export default function Pricing() {
-    const { user, session, subscription, signOut } = useAuth();
+    const { session, subscription, isPaid, isCanceling } = useAuth();
     const navigate = useNavigate();
-
-    async function handleSignOut() {
-        await signOut();
-    }
     const [loadingPlan, setLoadingPlan] = useState(null);
     const [error, setError] = useState('');
 
-    const currentPlan = subscription?.plan || 'free';
-    const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
-    const initials    = displayName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
+    // Plan vigente que se marca como "actual". Una suscripción cancelada (aún con
+    // acceso hasta fin de periodo) no marca ninguno: el usuario puede volver a suscribirse.
+    const currentPlan = isPaid ? (isCanceling ? null : subscription.plan) : 'free';
+    const accessUntil = isCanceling
+        ? new Date(subscription.current_period_end).toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' })
+        : null;
 
     async function handleUpgrade(planId) {
         if (planId === 'free' || planId === currentPlan) return;
@@ -114,9 +114,7 @@ export default function Pricing() {
                     <button onClick={() => navigate('/dashboard')}>Mis partidos</button>
                 </div>
                 <div className="topbar-right">
-                    <span className="plan-chip">{({ pro: 'PRO', team: 'PRO ANUAL' }[currentPlan]) || 'FREE'}</span>
-                    <div className="avatar">{initials}</div>
-                    <button onClick={handleSignOut} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.8rem' }}>Salir</button>
+                    <AccountMenu />
                 </div>
             </div>
 
@@ -126,6 +124,13 @@ export default function Pricing() {
                     <h1 style={{ fontSize: '2rem', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: '0.75rem' }}>Simple y transparente</h1>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Cancela cuando quieras. Sin permanencia.</p>
                 </div>
+
+                {isCanceling && (
+                    <div className="notice notice-warn" style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
+                        Tu suscripción está cancelada: conservas el acceso Pro hasta el <strong>{accessUntil}</strong>.
+                        Si vuelves a suscribirte ahora, el nuevo plan se cobra desde hoy.
+                    </div>
+                )}
 
                 {error && (
                     <div style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid var(--c-dn)', borderRadius: 'var(--radius)', padding: '0.75rem 1rem', marginBottom: '1.5rem', color: 'var(--c-dn)', fontSize: '0.85rem', textAlign: 'center' }}>

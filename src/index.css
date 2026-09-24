@@ -931,6 +931,114 @@ td {
     border-radius: 50px; background: var(--accent-dim); color: var(--accent);
     border: 1px solid var(--accent); text-transform: uppercase; letter-spacing: 0.06em;
 }
+.btn-upgrade:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ---- Menú de cuenta (topbar) ---- */
+.account-menu { position: relative; display: flex; align-items: center; gap: 0.6rem; }
+.account-trigger {
+    display: flex; align-items: center; gap: 0.3rem; padding: 0.15rem;
+    background: none; border: none; border-radius: 50px; cursor: pointer; font-family: var(--font);
+}
+.account-trigger:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.account-caret { color: var(--text-secondary); font-size: 0.7rem; transition: transform 0.15s ease; }
+.account-caret.open { transform: rotate(180deg); }
+.account-dropdown {
+    position: absolute; top: calc(100% + 0.5rem); right: 0; z-index: 150;
+    width: 260px; max-width: calc(100vw - 2rem);
+    background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow); padding: 0.4rem;
+    animation: dropdown-in 0.12s ease;
+}
+@keyframes dropdown-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.account-dropdown-header {
+    display: flex; align-items: center; gap: 0.7rem;
+    padding: 0.7rem 0.7rem 0.8rem; margin-bottom: 0.3rem; border-bottom: 1px solid var(--border);
+}
+.avatar.avatar-lg { width: 38px; height: 38px; font-size: 0.85rem; flex-shrink: 0; cursor: default; }
+.account-name { font-size: 0.88rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.account-email { font-size: 0.75rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.account-note { font-size: 0.7rem; color: var(--accent); margin-top: 0.15rem; }
+.account-dropdown > button,
+.account-dropdown > a {
+    display: flex; align-items: center; gap: 0.6rem; width: 100%;
+    padding: 0.55rem 0.7rem; border-radius: var(--radius-sm);
+    background: none; border: none; color: var(--text-secondary);
+    font-family: var(--font); font-size: 0.85rem; font-weight: 500; text-align: left;
+    text-decoration: none; cursor: pointer; transition: var(--trans);
+}
+.account-dropdown > button:hover,
+.account-dropdown > a:hover { background: var(--bg-hover); color: var(--text-primary); }
+.account-dropdown > .highlight { color: var(--accent); font-weight: 600; }
+.account-dropdown > button span,
+.account-dropdown > a span { width: 1.1rem; text-align: center; }
+.account-divider { height: 1px; background: var(--border); margin: 0.3rem 0; }
+
+/* ---- Página Mi cuenta ---- */
+.account-page { max-width: 720px; }
+.account-section {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+    padding: 1.5rem; margin-bottom: 1.25rem; scroll-margin-top: 72px;
+}
+.account-section h3 { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; }
+.account-section.danger-zone { border-color: rgba(220,38,38,0.35); }
+.account-section.danger-zone h3 { color: var(--c-dn); }
+.account-hint { font-size: 0.78rem; color: var(--text-secondary); margin: 0.1rem 0 0.9rem; }
+.account-text { font-size: 0.86rem; color: var(--text-secondary); line-height: 1.55; margin-bottom: 1rem; }
+.account-text a { color: var(--accent); }
+.account-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem; }
+.account-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
+.plan-summary {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.9rem 1rem; margin-bottom: 1rem;
+    background: var(--bg-card-alt); border: 1px solid var(--border); border-radius: var(--radius);
+}
+.plan-summary .account-hint { margin-bottom: 0; }
+.plan-summary-name { display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem; font-weight: 700; }
+.status-badge {
+    font-size: 0.65rem; font-weight: 700; padding: 0.12rem 0.5rem; border-radius: 50px;
+    text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid currentColor;
+}
+.status-badge.ok    { color: var(--c-pos); }
+.status-badge.warn  { color: var(--accent); }
+.status-badge.error { color: var(--c-dn); }
+.btn-secondary {
+    display: inline-flex; align-items: center; padding: 0.45rem 1rem; border-radius: var(--radius);
+    background: var(--bg-card-alt); border: 1px solid var(--border); color: var(--text-primary);
+    font-family: var(--font); font-size: 0.8rem; font-weight: 600; text-decoration: none;
+    cursor: pointer; transition: var(--trans); white-space: nowrap;
+}
+.btn-secondary:hover { border-color: rgba(255,255,255,0.2); }
+.btn-danger-link {
+    background: none; border: none; padding: 0.45rem 0.4rem; margin-left: auto;
+    color: var(--text-secondary); font-family: var(--font); font-size: 0.8rem;
+    text-decoration: underline; cursor: pointer;
+}
+.btn-danger-link:hover { color: var(--c-dn); }
+.notice {
+    font-size: 0.82rem; line-height: 1.5; padding: 0.65rem 0.85rem; margin-bottom: 1rem;
+    border-radius: var(--radius); border: 1px solid;
+}
+.notice-ok    { color: var(--c-pos); border-color: rgba(34,197,94,0.4); background: rgba(34,197,94,0.08); }
+.notice-error { color: var(--c-dn);  border-color: rgba(220,38,38,0.4); background: rgba(220,38,38,0.08); }
+.notice-warn  { color: var(--accent); border-color: rgba(249,115,22,0.4); background: var(--accent-dim); }
+.account-text a:not(.btn-upgrade):not(.btn-secondary) { color: var(--accent); }
+.faq-list { display: flex; flex-direction: column; }
+.faq-item { border-bottom: 1px solid var(--border); }
+.faq-item:last-child { border-bottom: none; }
+.faq-item summary {
+    cursor: pointer; padding: 0.8rem 0; font-size: 0.88rem; font-weight: 600;
+    list-style: none; display: flex; justify-content: space-between; gap: 1rem;
+}
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::after { content: '+'; color: var(--text-secondary); font-weight: 400; }
+.faq-item[open] summary::after { content: '−'; }
+.faq-item .account-text { margin: 0 0 0.9rem; }
+@media (max-width: 600px) {
+    .account-grid { grid-template-columns: 1fr; }
+    .account-section { padding: 1.1rem; }
+    .btn-danger-link { margin-left: 0; }
+}
+
 .page-wrap { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
 .page-header { margin-bottom: 2rem; }
 .page-header h2 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 0.25rem; }

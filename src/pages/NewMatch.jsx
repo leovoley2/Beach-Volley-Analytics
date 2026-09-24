@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import { useMatchesDB } from '../hooks/useMatchesDB';
+import AccountMenu from '../components/AccountMenu';
 
 export default function NewMatch() {
-    const { user } = useAuth();
     const { createMatch } = useMatchesDB();
     const navigate = useNavigate();
 
@@ -61,7 +60,7 @@ export default function NewMatch() {
                     <button className="active">Nuevo partido</button>
                 </div>
                 <div className="topbar-right">
-                    <div className="avatar">{user?.email?.[0]?.toUpperCase()}</div>
+                    <AccountMenu />
                 </div>
             </div>
 

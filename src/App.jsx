@@ -15,6 +15,9 @@ import Dashboard      from './pages/Dashboard';
 import NewMatch       from './pages/NewMatch';
 import Pricing        from './pages/Pricing';
 import PaymentSuccess from './pages/PaymentSuccess';
+import Account        from './pages/Account';
+import Subscription   from './pages/Subscription';
+import Support        from './pages/Support';
 import MatchApp       from './MatchApp';
 
 export default function App() {
@@ -36,6 +39,9 @@ export default function App() {
                     <Route path="/match/new"      element={<ProtectedRoute><NewMatch /></ProtectedRoute>} />
                     <Route path="/pricing"        element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
                     <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
+                    <Route path="/account"        element={<ProtectedRoute><Account /></ProtectedRoute>} />
+                    <Route path="/subscription"   element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
+                    <Route path="/support"        element={<ProtectedRoute><Support /></ProtectedRoute>} />
 
                     {/* Tracker + Informe por partido (usa MatchContext y los componentes existentes) */}
                     <Route path="/match/:matchId/*" element={
