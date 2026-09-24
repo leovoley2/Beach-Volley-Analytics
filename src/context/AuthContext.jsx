@@ -153,8 +153,14 @@ export function AuthProvider({ children }) {
         window.location.replace('/');
     }
 
-    const isPro  = subscription?.plan === 'pro'  && subscription?.status === 'active';
-    const isTeam = subscription?.plan === 'team' && subscription?.status === 'active';
+    // Misma regla que is_paid_user() en la BD: el periodo no debe haber vencido
+    // (+3 días de gracia para la renovación); sin fecha se considera vigente.
+    const GRACE_MS = 3 * 24 * 60 * 60 * 1000;
+    const periodOk = !subscription?.current_period_end
+        || new Date(subscription.current_period_end).getTime() > Date.now() - GRACE_MS;
+    const isActive = subscription?.status === 'active' && periodOk;
+    const isPro  = subscription?.plan === 'pro'  && isActive;
+    const isTeam = subscription?.plan === 'team' && isActive;
     const isPaid = isPro || isTeam;
 
     return (
