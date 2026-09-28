@@ -120,7 +120,7 @@ export default function MatchApp() {
     }
 
     return (
-        <div className="container">
+        <div className={`container ${view === 'tracker' ? 'container--tracker' : ''}`}>
             <header>
                 <div className="brand">
                     <h1><span>🏐</span>Beach Volley <span className="accent">Analytics</span></h1>
