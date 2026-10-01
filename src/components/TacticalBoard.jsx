@@ -263,6 +263,10 @@ export default function TacticalBoard({ matchId, ownTeamName, opponentTeamName, 
         ...opponentPlayers.slice(0, 2).map((p, i) => ({ key: `opp-${i}`, kind: 'opp', color: OPP_COLOR, label: shortName(p.name, `B${i + 1}`), name: p.name })),
         { key: 'ball', kind: 'ball', label: '', name: 'Balón' },
     ];
+    if (opponentPlayers.length === 0) tokens.splice(tokens.length - 1, 0,
+        { key: 'opp-0', kind: 'opp', color: OPP_COLOR, label: 'B1', name: 'B1' },
+        { key: 'opp-1', kind: 'opp', color: OPP_COLOR, label: 'B2', name: 'B2' },
+    );
     if (ownPlayers.length === 0) tokens.unshift(
         { key: 'own-0', kind: 'own', color: OWN_COLOR, label: 'A1', name: 'A1' },
         { key: 'own-1', kind: 'own', color: OWN_COLOR, label: 'A2', name: 'A2' },

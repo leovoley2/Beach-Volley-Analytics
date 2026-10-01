@@ -39,6 +39,7 @@ export default function Dashboard() {
                 <div className="topbar-nav">
                     <button className="active">Mis partidos</button>
                     <button onClick={() => navigate('/match/new')}>Nuevo partido</button>
+                    <button onClick={() => navigate('/pizarra')}>Pizarra</button>
                 </div>
                 <div className="topbar-right">
                     <AccountMenu />

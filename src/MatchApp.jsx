@@ -6,7 +6,7 @@ import { useMatchesDB } from './hooks/useMatchesDB';
 import { supabase } from './lib/supabase';
 import GameTracker from './components/GameTracker';
 import ReportViewer from './components/ReportViewer';
-import TacticalBoard from './components/TacticalBoard';
+import BoardWorkspace from './components/BoardWorkspace';
 
 export default function MatchApp() {
     const { matchId }    = useParams();
@@ -156,9 +156,9 @@ export default function MatchApp() {
             <main>
                 {view === 'tracker' && <GameTracker onFinishMatch={handleFinishMatch} />}
                 {view === 'board' && (
-                    <TacticalBoard
+                    <BoardWorkspace
                         key={matchId}
-                        matchId={matchId}
+                        scope={matchId}
                         ownTeamName={currentMatch?.ownTeamName}
                         opponentTeamName={currentMatch?.opponentTeamName}
                         ownPlayers={currentMatch?.ownPlayers}
