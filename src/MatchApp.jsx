@@ -6,6 +6,7 @@ import { useMatchesDB } from './hooks/useMatchesDB';
 import { supabase } from './lib/supabase';
 import GameTracker from './components/GameTracker';
 import ReportViewer from './components/ReportViewer';
+import TacticalBoard from './components/TacticalBoard';
 
 export default function MatchApp() {
     const { matchId }    = useParams();
@@ -24,7 +25,7 @@ export default function MatchApp() {
     const [loadingMatch, setLoadingMatch] = useState(false);
 
     const isTracker = pathname.includes('/tracker');
-    const view      = isTracker ? 'tracker' : 'report';
+    const view      = isTracker ? 'tracker' : pathname.includes('/pizarra') ? 'board' : 'report';
 
     // Cargar partido desde Supabase y adaptarlo al formato de MatchContext
     useEffect(() => {
@@ -120,7 +121,7 @@ export default function MatchApp() {
     }
 
     return (
-        <div className={`container ${view === 'tracker' ? 'container--tracker' : ''}`}>
+        <div className={`container ${view === 'tracker' ? 'container--tracker' : view === 'board' ? 'container--board' : ''}`}>
             <header>
                 <div className="brand">
                     <h1><span>🏐</span>Beach Volley <span className="accent">Analytics</span></h1>
@@ -141,20 +142,36 @@ export default function MatchApp() {
                     >
                         Tendencias
                     </button>
+                    <button
+                        onClick={() => navigate(`/match/${matchId}/pizarra`)}
+                        className={view === 'board' ? 'nav-active' : ''}
+                    >
+                        Pizarra
+                    </button>
                     <button onClick={handleSignOut} style={{ marginLeft: '0.5rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                         Salir
                     </button>
                 </nav>
             </header>
             <main>
-                {view === 'tracker'
-                    ? <GameTracker onFinishMatch={handleFinishMatch} />
-                    : <ReportViewer
+                {view === 'tracker' && <GameTracker onFinishMatch={handleFinishMatch} />}
+                {view === 'board' && (
+                    <TacticalBoard
+                        key={matchId}
+                        matchId={matchId}
+                        ownTeamName={currentMatch?.ownTeamName}
+                        opponentTeamName={currentMatch?.opponentTeamName}
+                        ownPlayers={currentMatch?.ownPlayers}
+                        opponentPlayers={currentMatch?.opponentPlayers}
+                    />
+                )}
+                {view === 'report' && (
+                    <ReportViewer
                         onGoToTracker={() => navigate(`/match/${matchId}/tracker`)}
                         isPaid={isPaid}
                         matchId={matchId}
-                      />
-                }
+                    />
+                )}
             </main>
         </div>
     );
