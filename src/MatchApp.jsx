@@ -100,9 +100,9 @@ export default function MatchApp() {
 
     if (loadingMatch) {
         return (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0b0f1a', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0a0c10', flexDirection: 'column', gap: '1rem' }}>
                 <div style={{ fontSize: '2.5rem', animation: 'spin 1.5s linear infinite' }}>🏐</div>
-                <p style={{ color: '#7a8899', fontFamily: 'Inter, sans-serif', fontSize: '0.9rem' }}>Cargando partido...</p>
+                <p style={{ color: '#8a919e', fontFamily: 'Inter, sans-serif', fontSize: '0.9rem' }}>Cargando partido...</p>
                 <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
             </div>
         );
@@ -110,9 +110,9 @@ export default function MatchApp() {
 
     if (loadError) {
         return (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0b0f1a', flexDirection: 'column', gap: '1rem', fontFamily: 'Inter, sans-serif' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0a0c10', flexDirection: 'column', gap: '1rem', fontFamily: 'Inter, sans-serif' }}>
                 <div style={{ fontSize: '2rem' }}>⚠️</div>
-                <p style={{ color: '#7a8899' }}>{loadError}</p>
+                <p style={{ color: '#8a919e' }}>{loadError}</p>
                 <button onClick={() => navigate('/dashboard')} style={{ padding: '0.65rem 1.5rem', background: '#f97316', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 700 }}>
                     ← Volver al dashboard
                 </button>

@@ -12,7 +12,7 @@ export function videoSupport() {
     return mimeType ? { mimeType, ext: mimeType.startsWith('video/mp4') ? 'mp4' : 'webm' } : null;
 }
 
-function pill(ctx, text, x, y, size, align = 'left', bg = 'rgba(11, 15, 26, 0.78)') {
+function pill(ctx, text, x, y, size, align = 'left', bg = 'rgba(10, 12, 16, 0.78)') {
     ctx.font = `700 ${size}px Inter, Arial, sans-serif`;
     const w = ctx.measureText(text).width + size * 1.2, h = size * 1.8;
     const left = align === 'right' ? x - w : x;

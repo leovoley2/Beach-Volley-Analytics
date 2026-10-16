@@ -18,26 +18,29 @@
 :root {
     --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
-    /* Backgrounds */
-    --bg-app: #0b0f1a;
-    --bg-card: #121929;
-    --bg-card-alt: #192033;
-    --bg-input: #0e1423;
-    --bg-hover: #1e2a40;
+    /* Backgrounds — near-neutral, cool undertone */
+    --bg-app: #0a0c10;
+    --bg-card: #111419;
+    --bg-card-alt: #171b21;
+    --bg-input: #0d1014;
+    --bg-hover: #1d222a;
 
     /* Borders */
     --border: rgba(255, 255, 255, 0.07);
+    --border-strong: rgba(255, 255, 255, 0.13);
     --border-focus: #f97316;
 
     /* Text */
-    --text-primary: #e8edf5;
-    --text-secondary: #7a8899;
-    --text-muted: #4a5568;
+    --text-primary: #eceef2;
+    --text-secondary: #8a919e;
+    --text-muted: #555c69;
 
     /* Brand / Accent */
     --accent: #f97316;
     /* orange — volleyball energy */
-    --accent-dim: rgba(249, 115, 22, 0.12);
+    --accent-hover: #ea6a0c;
+    --accent-dim: rgba(249, 115, 22, 0.1);
+    --accent-ring: rgba(249, 115, 22, 0.45);
     --accent-blue: #3b82f6;
     --accent-blue-dim: rgba(59, 130, 246, 0.12);
 
@@ -57,9 +60,18 @@
     --radius-sm: 6px;
     --radius: 10px;
     --radius-lg: 16px;
-    --shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-    --trans: all 0.18s ease;
+    --shadow: 0 0 0 1px rgba(0, 0, 0, 0.2), 0 12px 32px -8px rgba(0, 0, 0, 0.6);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    /* Primary button: thin top highlight instead of an orange glow */
+    --shadow-accent: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 1px 2px rgba(0, 0, 0, 0.4);
+
+    /* Motion — custom curves; built-in easings are too weak */
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+    /* Explicit properties only (never `all`): colors ease, transforms ease-out */
+    --trans: color 150ms ease, background-color 150ms ease, border-color 150ms ease,
+        box-shadow 150ms ease, opacity 150ms ease, filter 150ms ease,
+        transform 160ms var(--ease-out);
 }
 
 /* ---- Base ---- */
@@ -81,7 +93,7 @@ body::before {
     content: '';
     position: fixed;
     inset: 0;
-    background-image: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(249, 115, 22, 0.07) 0%, transparent 70%);
+    background-image: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(249, 115, 22, 0.035) 0%, transparent 70%);
     pointer-events: none;
     z-index: 0;
 }
@@ -169,7 +181,7 @@ header nav button:hover:not(:disabled) {
 header nav button.nav-active {
     background: var(--accent);
     color: white;
-    box-shadow: 0 2px 12px rgba(249, 115, 22, 0.35);
+    box-shadow: var(--shadow-accent);
 }
 
 header nav button:disabled {
@@ -293,7 +305,6 @@ button:hover:not(:disabled) {
     background: var(--bg-hover);
     color: var(--text-primary);
     border-color: rgba(255, 255, 255, 0.15);
-    transform: translateY(-1px);
 }
 
 button:disabled {
@@ -312,13 +323,13 @@ button.active {
     background: var(--accent);
     color: white;
     border-color: transparent;
-    box-shadow: 0 2px 12px rgba(249, 115, 22, 0.28);
+    box-shadow: var(--shadow-accent);
 }
 
 .btn-primary:hover:not(:disabled) {
-    background: #ea6a0c;
+    background: var(--accent-hover);
     border-color: transparent;
-    box-shadow: 0 4px 18px rgba(249, 115, 22, 0.4);
+    box-shadow: var(--shadow-accent);
 }
 
 /* ---- Button Groups ---- */
@@ -520,7 +531,6 @@ button.active {
 }
 
 .outcome-btn:hover:not(:disabled) {
-    transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
     filter: brightness(1.1);
 }
@@ -528,7 +538,6 @@ button.active {
 .outcome-btn.active {
     outline: 2.5px solid white;
     outline-offset: 2px;
-    transform: translateY(-2px);
 }
 
 /* Outcome colors */
@@ -621,14 +630,13 @@ button.active {
     background: var(--accent);
     color: white;
     border: none;
-    box-shadow: 0 2px 14px rgba(249, 115, 22, 0.3);
+    box-shadow: var(--shadow-accent);
     letter-spacing: 0.02em;
 }
 
 .btn-register:hover:not(:disabled) {
-    background: #ea6a0c;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4);
+    background: var(--accent-hover);
+    box-shadow: var(--shadow-accent);
 }
 
 /* ---- Tables ---- */
@@ -719,8 +727,7 @@ td {
 
 .btn-go-match:hover {
     background: var(--accent-dim);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(249, 115, 22, 0.2);
+    box-shadow: var(--shadow-accent);
 }
 
 .pdf-container {
@@ -873,10 +880,10 @@ td {
     width: 100%; padding: 0.8rem; border-radius: var(--radius);
     background: var(--accent); color: white; border: none;
     font-size: 0.95rem; font-weight: 700; cursor: pointer;
-    transition: var(--trans); box-shadow: 0 2px 12px rgba(249,115,22,0.28);
+    transition: var(--trans); box-shadow: var(--shadow-accent);
     margin-top: 0.5rem;
 }
-.btn-auth:hover:not(:disabled) { background: #ea6a0c; transform: translateY(-1px); }
+.btn-auth:hover:not(:disabled) { background: var(--accent-hover); }
 .btn-auth:disabled { opacity: 0.6; cursor: not-allowed; }
 .auth-divider {
     display: flex; align-items: center; gap: 0.75rem;
@@ -901,7 +908,7 @@ td {
 =================================================== */
 .topbar {
     position: sticky; top: 0; z-index: 100;
-    background: rgba(11,15,26,0.92); backdrop-filter: blur(12px);
+    background: rgba(10, 12, 16, 0.85); backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
     padding: 0 1.5rem; height: 56px;
     display: flex; align-items: center; justify-content: space-between;
@@ -947,9 +954,10 @@ td {
     width: 260px; max-width: calc(100vw - 2rem);
     background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1);
     border-radius: var(--radius-lg); box-shadow: var(--shadow); padding: 0.4rem;
-    animation: dropdown-in 0.12s ease;
+    animation: dropdown-in 160ms var(--ease-out);
+    transform-origin: top right;
 }
-@keyframes dropdown-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@keyframes dropdown-in { from { opacity: 0; transform: translateY(-4px) scale(0.97); } to { opacity: 1; transform: none; } }
 .account-dropdown-header {
     display: flex; align-items: center; gap: 0.7rem;
     padding: 0.7rem 0.7rem 0.8rem; margin-bottom: 0.3rem; border-bottom: 1px solid var(--border);
@@ -1099,14 +1107,14 @@ td {
 .limit-bar { height: 6px; background: var(--bg-hover); border-radius: 3px; margin: 0.4rem 0; overflow: hidden; }
 .limit-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
 .btn-upgrade { background: var(--accent); color: white; border: none; padding: 0.45rem 1rem; border-radius: var(--radius); font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: var(--trans); white-space: nowrap; font-family: var(--font); }
-.btn-upgrade:hover { background: #ea6a0c; }
+.btn-upgrade:hover { background: var(--accent-hover); }
 .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
 .section-header h3 { font-size: 1rem; font-weight: 700; }
 .btn-new { background: var(--accent); color: white; border: none; padding: 0.55rem 1.1rem; border-radius: var(--radius); font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: var(--trans); display: flex; align-items: center; gap: 0.35rem; font-family: var(--font); }
-.btn-new:hover { background: #ea6a0c; transform: translateY(-1px); }
+.btn-new:hover { background: var(--accent-hover); }
 .match-list { display: flex; flex-direction: column; gap: 0.75rem; }
 .match-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.1rem 1.25rem; display: flex; align-items: center; gap: 1rem; transition: var(--trans); cursor: pointer; }
-.match-item:hover { border-color: rgba(249,115,22,0.25); transform: translateX(2px); }
+.match-item:hover { border-color: rgba(249,115,22,0.25); }
 .match-icon { width: 40px; height: 40px; border-radius: var(--radius); background: var(--accent-dim); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
 .match-info { flex: 1; min-width: 0; }
 .match-teams { font-size: 0.92rem; font-weight: 700; margin-bottom: 0.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1309,7 +1317,6 @@ td {
 .set-tab:hover:not(:disabled) {
     background: var(--bg-hover);
     color: var(--text-primary);
-    transform: translateY(-1px);
 }
 
 .set-tab.active {
@@ -1438,7 +1445,6 @@ td {
 .complex-tab:hover:not(:disabled) {
     color: var(--text-primary);
     border-color: rgba(255, 255, 255, 0.2);
-    transform: translateY(-1px);
 }
 
 /* K1 — teal/green accent */
@@ -1446,7 +1452,7 @@ td {
     background: rgba(16, 185, 129, 0.12);
     color: #10b981;
     border-color: #10b981;
-    box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+    box-shadow: none;
 }
 
 .complex-tab.k1:hover:not(.active) {
@@ -1459,7 +1465,7 @@ td {
     background: rgba(245, 158, 11, 0.12);
     color: #f59e0b;
     border-color: #f59e0b;
-    box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
+    box-shadow: none;
 }
 
 .complex-tab.k2:hover:not(.active) {
@@ -1523,7 +1529,6 @@ td {
 .player-court-btn:hover:not(:disabled) {
     color: var(--text-primary);
     border-color: rgba(255, 255, 255, 0.25);
-    transform: translateY(-1px);
 }
 
 .player-court-btn.active {
@@ -1575,7 +1580,6 @@ td {
 }
 
 .attack-type-btn:hover:not(:disabled) {
-    transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
 }
 
@@ -1610,7 +1614,7 @@ td {
     background: rgba(249, 115, 22, 0.18);
     border-color: var(--accent);
     color: var(--accent);
-    box-shadow: 0 0 16px rgba(249, 115, 22, 0.4);
+    box-shadow: none;
 }
 
 /* Coloque — blue precision */
@@ -1626,7 +1630,7 @@ td {
     background: rgba(59, 130, 246, 0.18);
     border-color: var(--accent-blue);
     color: var(--accent-blue);
-    box-shadow: 0 0 16px rgba(59, 130, 246, 0.4);
+    box-shadow: none;
 }
 
 /* 2 Toques — teal/emerald, dashed border to signal special action */
@@ -1644,7 +1648,7 @@ td {
     border-color: #14b8a6;
     border-style: dashed;
     color: #14b8a6;
-    box-shadow: 0 0 16px rgba(20, 184, 166, 0.35);
+    box-shadow: none;
 }
 
 /* ===================================================
@@ -2147,7 +2151,7 @@ button.outcome-doble-negativo.active { background: var(--c-dn); }
     max-width: calc(100% - 1rem);
     padding: 0.3rem 0.75rem;
     border-radius: 999px;
-    background: rgba(11, 15, 26, 0.75);
+    background: rgba(10, 12, 16, 0.75);
     color: #fff;
     font-size: 0.75rem;
     white-space: nowrap;
@@ -2281,7 +2285,7 @@ button.outcome-doble-negativo.active { background: var(--c-dn); }
     max-width: calc(100% - 1rem);
     overflow-x: auto;
     padding: 0.3rem;
-    background: rgba(11, 15, 26, 0.82);
+    background: rgba(10, 12, 16, 0.82);
     border-radius: var(--radius);
     scrollbar-width: none;
 }
@@ -2308,7 +2312,7 @@ button.outcome-doble-negativo.active { background: var(--c-dn); }
     max-width: calc(100% - 1rem);
     padding: 0.35rem 0.85rem;
     border-radius: 999px;
-    background: rgba(11, 15, 26, 0.75);
+    background: rgba(10, 12, 16, 0.75);
     color: #fff;
     font-size: 0.75rem;
     text-align: center;
@@ -2477,7 +2481,7 @@ button.outcome-doble-negativo.active { background: var(--c-dn); }
     top: 0.6rem;
     width: min(320px, calc(100% - 1.2rem));
     padding: 0.5rem;
-    background: rgba(11, 15, 26, 0.92);
+    background: rgba(10, 12, 16, 0.92);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     display: flex;
@@ -2513,4 +2517,71 @@ button.outcome-doble-negativo.active { background: var(--c-dn); }
     font-weight: 800;
     letter-spacing: 0.06em;
     vertical-align: middle;
+}
+
+/* ===================================================
+   POLISH LAYER — interaction details shared by the whole app
+   Hover = color only. Press = subtle scale. Focus = visible ring.
+=================================================== */
+
+/* Tighter, more deliberate headings and numeric alignment */
+h1, h2, h3 { text-wrap: balance; }
+.stat-value, .match-score, .score-controls span,
+.scoreboard-sets .team-score span, td, .num { font-variant-numeric: tabular-nums; }
+
+/* Press feedback: the UI confirms it heard the tap */
+button:not(:disabled):active,
+.btn-primary:not(:disabled):active,
+.btn-auth:not(:disabled):active,
+.btn-new:active, .btn-upgrade:active, .btn-secondary:active,
+.btn-google:active, .btn-cancel:active, .btn-delete:not(:disabled):active,
+.btn-go-match:active, .btn-register:not(:disabled):active,
+.landing-btn-primary:active, .landing-btn-ghost:active {
+    transform: scale(0.97);
+}
+/* Large tiles press less, so they don't look like they shrink away */
+.outcome-btn:not(:disabled):active,
+.attack-type-btn:not(:disabled):active,
+.match-item:active { transform: scale(0.985); }
+/* Menu rows and tiny controls: no scale, color feedback is enough */
+.account-dropdown > button:active,
+.account-trigger:active { transform: none; }
+
+/* Selected outcome: ring instead of a lift */
+.outcome-btn.active { transform: none; }
+
+/* Match list: quiet hover, accent reserved for intent */
+.match-item:hover { background: var(--bg-card-alt); border-color: var(--border-strong); }
+
+/* Secondary controls get a clearer edge on hover */
+button:hover:not(:disabled),
+.btn-secondary:hover, .btn-icon:hover, .btn-google:hover { border-color: var(--border-strong); }
+
+/* Focus: visible for keyboard, invisible for mouse */
+:where(button, a, summary, [role="button"], input, select, textarea):focus-visible {
+    outline: 2px solid var(--accent-ring);
+    outline-offset: 2px;
+}
+input[type="text"]:focus, select:focus, .form-input:focus {
+    background: var(--bg-input);
+    box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+/* Cards: flat surfaces separated by hairlines, not heavy shadows */
+.card, .stat-card, .account-section, .admin-chart, .limit-bar-wrap { box-shadow: none; }
+
+/* Modals: overlay fades, dialog rises from 96% (centered origin — modals aren't anchored) */
+.modal-overlay { animation: overlay-in 200ms ease; }
+.modal-overlay > * { animation: dialog-in 220ms var(--ease-out); }
+@keyframes overlay-in { from { opacity: 0; } }
+@keyframes dialog-in { from { opacity: 0; transform: translateY(6px) scale(0.96); } }
+
+/* Selection color in brand tone */
+::selection { background: rgba(249, 115, 22, 0.3); color: var(--text-primary); }
+
+/* Reduced motion: keep fades, drop movement */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-property: color, background-color, border-color, opacity !important; }
+    .modal-overlay > *, .account-dropdown { animation-name: overlay-in !important; }
+    button:active, .outcome-btn:active, .match-item:active { transform: none !important; }
 }

@@ -545,7 +545,7 @@ function ReportViewer({ onGoToTracker, isPaid = false, matchId = null }) {
                                                 <td><strong>Set {index + 1}</strong></td>
                                                 <td style={{ color: set.own > set.opponent ? '#22c55e' : undefined }}>{set.own}</td>
                                                 <td style={{ color: set.opponent > set.own ? '#22c55e' : undefined }}>{set.opponent}</td>
-                                                <td style={{ color: '#7a8899' }}>{setActions.length}</td>
+                                                <td style={{ color: '#8a919e' }}>{setActions.length}</td>
                                             </tr>
                                         );
                                     })}

@@ -20,12 +20,12 @@ class ErrorBoundary extends Component {
             return (
                 <div style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    height: '100vh', background: '#0b0f1a', flexDirection: 'column', gap: '1rem',
+                    height: '100vh', background: '#0a0c10', flexDirection: 'column', gap: '1rem',
                     fontFamily: 'Inter, sans-serif', padding: '2rem', textAlign: 'center',
                 }}>
                     <div style={{ fontSize: '3rem' }}>⚠️</div>
-                    <h2 style={{ color: '#e8edf5', fontSize: '1.1rem', fontWeight: 700 }}>Algo salió mal</h2>
-                    <p style={{ color: '#7a8899', fontSize: '0.85rem', maxWidth: 400 }}>
+                    <h2 style={{ color: '#eceef2', fontSize: '1.1rem', fontWeight: 700 }}>Algo salió mal</h2>
+                    <p style={{ color: '#8a919e', fontSize: '0.85rem', maxWidth: 400 }}>
                         {this.state.error?.message || 'Error desconocido'}
                     </p>
                     <button

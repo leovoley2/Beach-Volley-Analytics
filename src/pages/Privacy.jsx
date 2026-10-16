@@ -97,10 +97,10 @@ function Section({ title, children }) {
     );
 }
 
-const legalWrapStyle = { minHeight: '100vh', background: '#0b0f1a', padding: '2.5rem 1rem', display: 'flex', justifyContent: 'center' };
+const legalWrapStyle = { minHeight: '100vh', background: '#0a0c10', padding: '2.5rem 1rem', display: 'flex', justifyContent: 'center' };
 const legalCardStyle = { maxWidth: 760, width: '100%', background: '#121826', border: '1px solid #1f2937', borderRadius: 16, padding: '2.5rem', color: '#cbd5e1', fontFamily: 'Inter, system-ui, sans-serif', lineHeight: 1.7 };
 const backLinkStyle  = { color: '#f97316', fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none' };
 const h1Style    = { color: '#f8fafc', fontSize: '1.8rem', fontWeight: 800, margin: '1rem 0 0.25rem' };
 const h2Style    = { color: '#f8fafc', fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.4rem' };
 const bodyStyle  = { fontSize: '0.92rem' };
-const mutedStyle = { color: '#7a8899', fontSize: '0.85rem' };
+const mutedStyle = { color: '#8a919e', fontSize: '0.85rem' };

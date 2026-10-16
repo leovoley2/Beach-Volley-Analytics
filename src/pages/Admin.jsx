@@ -64,8 +64,8 @@ function WeeklyBars({ title, weeks, field }) {
             tooltip: { callbacks: { title: (items) => `Semana del ${items[0].label}` } },
         },
         scales: {
-            x: { grid: { display: false }, ticks: { color: '#7a8899', font: { size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 6 } },
-            y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.06)' }, border: { display: false }, ticks: { color: '#7a8899', font: { size: 10 }, precision: 0 } },
+            x: { grid: { display: false }, ticks: { color: '#8a919e', font: { size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 6 } },
+            y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.06)' }, border: { display: false }, ticks: { color: '#8a919e', font: { size: 10 }, precision: 0 } },
         },
     };
     return (

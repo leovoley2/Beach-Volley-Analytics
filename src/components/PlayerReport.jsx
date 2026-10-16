@@ -132,7 +132,7 @@ function PointChronology({ playerActions, allSetActions }) {
 
     if (!playerActions || playerActions.length === 0) {
         return (
-            <div style={{ textAlign: 'center', color: '#7a8899', fontSize: '0.85rem', padding: '2rem 0' }}>
+            <div style={{ textAlign: 'center', color: '#8a919e', fontSize: '0.85rem', padding: '2rem 0' }}>
                 Sin acciones registradas
             </div>
         );
@@ -252,7 +252,7 @@ function PointChronology({ playerActions, allSetActions }) {
                                 const skillIdx = activeSkills.indexOf(action.skill);
                                 if (skillIdx === -1) return null;
                                 const cy = headerH + skillIdx * rowH + rowH / 2;
-                                const fill = OUTCOME_DOT_COLOR[action.outcome] || '#7a8899';
+                                const fill = OUTCOME_DOT_COLOR[action.outcome] || '#8a919e';
                                 const sym = OUTCOME_SYMBOL[action.outcome] || '?';
                                 return (
                                     <g
@@ -304,7 +304,7 @@ function PointChronology({ playerActions, allSetActions }) {
                             textAnchor="middle" dominantBaseline="middle"
                             style={{
                                 fontSize: '9px',
-                                fill: '#e8edf5',
+                                fill: '#eceef2',
                                 fontFamily: 'Inter, sans-serif',
                             }}
                         >
@@ -491,7 +491,7 @@ function PlayerReport({ playerName, playerStats, playerColor, matchType, playerA
                                     <td className="cell-ovp">{ovp}</td>
                                     <td className="cell-neg">{neg}</td>
                                     <td className="cell-dn">{dn}</td>
-                                    <td><strong style={{ color: eficacia > 0 ? '#22c55e' : '#7a8899' }}>{eficacia}%</strong></td>
+                                    <td><strong style={{ color: eficacia > 0 ? '#22c55e' : '#8a919e' }}>{eficacia}%</strong></td>
                                     <td><strong style={{ color: eff >= 0 ? '#22c55e' : '#dc2626' }}>{eff}%</strong></td>
                                 </tr>
                             );
@@ -582,7 +582,7 @@ function PlayerReport({ playerName, playerStats, playerColor, matchType, playerA
                                                     <td className="cell-pos">{r.pos}</td>
                                                     <td className="cell-neg">{r.neg}</td>
                                                     <td className="cell-dn">{r.dn}</td>
-                                                    <td><strong style={{ color: eficacia > 0 ? '#22c55e' : '#7a8899' }}>{eficacia}%</strong></td>
+                                                    <td><strong style={{ color: eficacia > 0 ? '#22c55e' : '#8a919e' }}>{eficacia}%</strong></td>
                                                 </tr>
                                             );
                                         })}

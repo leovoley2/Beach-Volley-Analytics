@@ -259,15 +259,15 @@ export default function Landing() {
                     display: inline-block; background: var(--accent); color: #fff; font-weight: 700;
                     font-size: 0.9rem; padding: 0.6rem 1.1rem; border-radius: var(--radius);
                     text-decoration: none; border: none; transition: var(--trans);
-                    box-shadow: 0 2px 12px rgba(249,115,22,0.3);
+                    box-shadow: var(--shadow-accent);
                 }
-                .landing-btn-primary:hover { filter: brightness(1.08); transform: translateY(-1px); }
+                .landing-btn-primary:hover { background: var(--accent-hover); }
                 .landing-btn-ghost {
                     display: inline-block; background: transparent; color: var(--text-primary); font-weight: 700;
                     font-size: 0.9rem; padding: 0.6rem 1.1rem; border-radius: var(--radius);
-                    text-decoration: none; border: 1.5px solid var(--border); transition: var(--trans);
+                    text-decoration: none; border: 1px solid var(--border-strong); transition: var(--trans);
                 }
-                .landing-btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+                .landing-btn-ghost:hover { background: var(--bg-hover); border-color: rgba(255,255,255,0.2); }
                 .landing-btn-lg { padding: 0.85rem 1.75rem; font-size: 1rem; }
                 .landing-btn-block { display: block; width: 100%; text-align: center; box-sizing: border-box; }
             `}</style>

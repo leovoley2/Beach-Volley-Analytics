@@ -140,7 +140,7 @@ export default function Dashboard() {
                                             <span>📅 {dateStr}</span>
                                             {match.location && <span>📍 {match.location}</span>}
                                             {match.tournament && <span>🏆 {match.tournament}</span>}
-                                            <span style={{ color: STATUS_COLOR[match.status] || '#7a8899', fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.06em', border: `1px solid ${STATUS_COLOR[match.status] || '#7a8899'}`, padding: '0.1rem 0.5rem', borderRadius: '50px', background: `${STATUS_COLOR[match.status] || '#7a8899'}15` }}>
+                                            <span style={{ color: STATUS_COLOR[match.status] || '#8a919e', fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.06em', border: `1px solid ${STATUS_COLOR[match.status] || '#8a919e'}`, padding: '0.1rem 0.5rem', borderRadius: '50px', background: `${STATUS_COLOR[match.status] || '#8a919e'}15` }}>
                                                 {STATUS_LABEL[match.status] || match.status}
                                             </span>
                                         </div>
