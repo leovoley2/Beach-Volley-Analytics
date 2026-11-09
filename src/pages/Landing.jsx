@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LEGAL } from '../lib/legalConfig';
+import { versionLabel, versionDetail } from '../lib/appVersion';
 
 // Iconos de trazo (24×24, estilo lineal) — más sobrios que emojis.
 const ICONS = {
@@ -268,7 +269,7 @@ export default function Landing() {
             {/* FOOTER */}
             <footer className="lp-footer">
                 <div className="lp-footer-inner">
-                    <div>© {new Date().getFullYear()} Beach Volley Analytics</div>
+                    <div>© {new Date().getFullYear()} Beach Volley Analytics <span className="lp-footer-version" title={versionDetail()}>{versionLabel()}</span></div>
                     <div className="lp-footer-links">
                         <Link to="/terms">Términos</Link>
                         <Link to="/privacy">Privacidad</Link>

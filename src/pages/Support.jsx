@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import AccountMenu from '../components/AccountMenu';
 import { LEGAL } from '../lib/legalConfig';
+import { versionDetail } from '../lib/appVersion';
 
 // Respuestas alineadas con los Términos (sección 5) y la Política de Privacidad:
 // si cambian esos textos, revisar también estas.
@@ -32,7 +33,7 @@ export default function Support() {
 
     const supportMailto = `mailto:${LEGAL.supportEmail}`
         + `?subject=${encodeURIComponent('Soporte — Beach Volley Analytics')}`
-        + `&body=${encodeURIComponent(`Cuéntanos qué ocurre:\n\n\n---\nUsuario: ${user?.email || ''}\nPlan: ${subscription?.plan || 'free'}`)}`;
+        + `&body=${encodeURIComponent(`Cuéntanos qué ocurre:\n\n\n---\nUsuario: ${user?.email || ''}\nPlan: ${subscription?.plan || 'free'}\nVersión: ${versionDetail()}`)}`;
 
     return (
         <div style={{ minHeight: '100vh' }}>

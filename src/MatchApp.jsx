@@ -7,6 +7,7 @@ import { supabase } from './lib/supabase';
 import GameTracker from './components/GameTracker';
 import ReportViewer from './components/ReportViewer';
 import BoardWorkspace from './components/BoardWorkspace';
+import VideoScout from './components/VideoScout';
 
 export default function MatchApp() {
     const { matchId }    = useParams();
@@ -25,7 +26,10 @@ export default function MatchApp() {
     const [loadingMatch, setLoadingMatch] = useState(false);
 
     const isTracker = pathname.includes('/tracker');
-    const view      = isTracker ? 'tracker' : pathname.includes('/pizarra') ? 'board' : 'report';
+    const view      = isTracker ? 'tracker'
+        : pathname.includes('/pizarra') ? 'board'
+        : pathname.includes('/video') ? 'video'
+        : 'report';
 
     // Cargar partido desde Supabase y adaptarlo al formato de MatchContext
     useEffect(() => {
@@ -121,7 +125,7 @@ export default function MatchApp() {
     }
 
     return (
-        <div className={`container ${view === 'tracker' ? 'container--tracker' : view === 'board' ? 'container--board' : ''}`}>
+        <div className={`container ${{ tracker: 'container--tracker', board: 'container--board', video: 'container--video' }[view] || ''}`}>
             <header>
                 <div className="brand">
                     <h1><span>🏐</span>Beach Volley <span className="accent">Analytics</span></h1>
@@ -135,6 +139,13 @@ export default function MatchApp() {
                         disabled={!currentMatch}
                     >
                         Partido Actual
+                    </button>
+                    <button
+                        onClick={() => navigate(`/match/${matchId}/video`)}
+                        className={view === 'video' ? 'nav-active' : ''}
+                        disabled={!currentMatch}
+                    >
+                        Video{!isPaid && <span className="pro-badge">PRO</span>}
                     </button>
                     <button
                         onClick={() => navigate(`/match/${matchId}`)}
@@ -155,6 +166,7 @@ export default function MatchApp() {
             </header>
             <main>
                 {view === 'tracker' && <GameTracker onFinishMatch={handleFinishMatch} />}
+                {view === 'video' && <VideoScout key={matchId} matchId={matchId} />}
                 {view === 'board' && (
                     <BoardWorkspace
                         key={matchId}

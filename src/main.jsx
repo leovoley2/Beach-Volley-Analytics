@@ -2,6 +2,10 @@ import { StrictMode, Component } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App.jsx';
+import { versionDetail } from './lib/appVersion';
+
+// Para soporte: la versión exacta queda en la consola del navegador.
+console.info(`Beach Volley Analytics ${versionDetail()}`);
 
 // Error Boundary global para atrapar errores silenciosos
 class ErrorBoundary extends Component {

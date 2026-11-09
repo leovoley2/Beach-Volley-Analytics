@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { versionLabel, versionDetail } from '../lib/appVersion';
 
 /**
  * Chip del plan + avatar que abre el menú de cuenta (topbar de las páginas privadas).
@@ -86,6 +87,8 @@ export default function AccountMenu() {
                     <button type="button" role="menuitem" onClick={() => { setOpen(false); signOut(); }}>
                         <span>↩</span> Cerrar sesión
                     </button>
+
+                    <div className="account-version" title={versionDetail()}>Beach Volley Analytics {versionLabel()}</div>
                 </div>
             )}
         </div>

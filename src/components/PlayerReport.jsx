@@ -8,6 +8,7 @@ import {
 } from 'chart.js';
 
 import { SKILL_DETAILS, baseSkillOf } from '../lib/scoutingDetails';
+import { hasVideoTime } from '../lib/videoClips';
 
 Chart.register(
     CategoryScale, LinearScale, BarElement,
@@ -334,7 +335,24 @@ function PointChronology({ playerActions, allSetActions }) {
     );
 }
 
-function PlayerReport({ playerName, playerStats, playerColor, matchType, playerActions, allSetActions }) {
+// Número de la tabla que, si hay acciones con tiempo de video, abre esos clips (PRO).
+// El ▶ no sale en el PDF (data-html2canvas-ignore).
+function ClipCell({ value, actions, label, onOpenClips }) {
+    const clips = onOpenClips ? actions.filter(hasVideoTime) : [];
+    if (!value || clips.length === 0) return value;
+    return (
+        <button
+            type="button"
+            className="cell-clip"
+            onClick={() => onOpenClips(clips, label)}
+            title={`Ver ${clips.length} clip${clips.length === 1 ? '' : 's'} en video`}
+        >
+            {value}<span className="cell-clip-icon" data-html2canvas-ignore="true">▶</span>
+        </button>
+    );
+}
+
+function PlayerReport({ playerName, playerStats, playerColor, matchType, playerActions, allSetActions, onOpenClips }) {
     if (!playerStats || !playerStats.skills) {
         return <div className="player-report error">Error: Faltan datos del jugador.</div>;
     }
@@ -402,6 +420,16 @@ function PlayerReport({ playerName, playerStats, playerColor, matchType, playerA
         activeSkills.reduce((sum, skill) => sum + (playerStats.skills[skill]?.[key] || 0), 0)
     );
     const totalActions = totalsByOutcome.reduce((a, b) => a + b, 0);
+
+    // Celda de la tabla enlazada a sus clips de video (si los hay).
+    const clip = (skill, outcome, value) => (
+        <ClipCell
+            value={value}
+            actions={(playerActions || []).filter(a => a.skill === skill && (!outcome || a.outcome === outcome))}
+            label={[playerName, skill, outcome].filter(Boolean).join(' · ')}
+            onOpenClips={onOpenClips}
+        />
+    );
 
     // Desglose de detalles de scouting (tipo de saque, zona de recepción, etc.)
     const detailBreakdown = computeDetailBreakdown(playerActions);
@@ -485,12 +513,12 @@ function PlayerReport({ playerName, playerStats, playerColor, matchType, playerA
                             return (
                                 <tr key={skill}>
                                     <td><strong>{skill}</strong></td>
-                                    <td>{s.total}</td>
-                                    <td className="cell-dp">{dp}</td>
-                                    <td className="cell-pos">{pos}</td>
-                                    <td className="cell-ovp">{ovp}</td>
-                                    <td className="cell-neg">{neg}</td>
-                                    <td className="cell-dn">{dn}</td>
+                                    <td>{clip(skill, null, s.total)}</td>
+                                    <td className="cell-dp">{clip(skill, 'Doble Positivo', dp)}</td>
+                                    <td className="cell-pos">{clip(skill, 'Positivo', pos)}</td>
+                                    <td className="cell-ovp">{clip(skill, 'Overpass', ovp)}</td>
+                                    <td className="cell-neg">{clip(skill, 'Negativo', neg)}</td>
+                                    <td className="cell-dn">{clip(skill, 'Doble Negativo', dn)}</td>
                                     <td><strong style={{ color: eficacia > 0 ? '#22c55e' : '#8a919e' }}>{eficacia}%</strong></td>
                                     <td><strong style={{ color: eff >= 0 ? '#22c55e' : '#dc2626' }}>{eff}%</strong></td>
                                 </tr>

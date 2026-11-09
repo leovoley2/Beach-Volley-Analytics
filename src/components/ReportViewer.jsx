@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { useMatches } from '../context/MatchContext';
+import { useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import PlayerReport from './PlayerReport';
@@ -178,6 +179,14 @@ function ReportViewer({ onGoToTracker, isPaid = false, matchId = null }) {
         if (matchId && currentMatch?.id === matchId) return currentMatch;
         return matches.find(m => m.id === selectedMatchId) || null;
     }, [selectedMatchId, matches, matchId, currentMatch]);
+
+    // Clic en un número de la tabla → pestaña Video con exactamente esas acciones (solo PRO).
+    const navigate = useNavigate();
+    const openClips = isPaid && matchId
+        ? (clipActions, label) => navigate(`/match/${matchId}/video`, {
+            state: { clipIds: clipActions.map(a => a.id).filter(Boolean), label },
+        })
+        : null;
 
     const handleMatchChange = (e) => {
         setSelectedMatchId(e.target.value);
@@ -689,6 +698,7 @@ function ReportViewer({ onGoToTracker, isPaid = false, matchId = null }) {
                                     matchType={selectedMatch.matchType}
                                     playerActions={filteredActions.filter(a => a.playerId === playerId)}
                                     allSetActions={filteredActions}
+                                    onOpenClips={openClips}
                                 />
                             ))
                         }

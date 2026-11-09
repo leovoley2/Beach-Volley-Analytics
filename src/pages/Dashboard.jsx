@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useMatchesDB } from '../hooks/useMatchesDB';
 import { LEGAL } from '../lib/legalConfig';
 import AccountMenu from '../components/AccountMenu';
+import { versionDetail } from '../lib/appVersion';
 
 const STATUS_LABEL = { in_progress: 'En progreso', completed: 'Completado' };
 const STATUS_COLOR = { in_progress: '#f97316', completed: '#22c55e' };
@@ -29,7 +30,7 @@ export default function Dashboard() {
     // Enlace de soporte técnico con asunto y datos del usuario pre-llenados
     const supportMailto = `mailto:${LEGAL.supportEmail}`
         + `?subject=${encodeURIComponent('Soporte — Beach Volley Analytics')}`
-        + `&body=${encodeURIComponent(`\n\n---\nUsuario: ${user?.email || ''}\nPlan: ${subscription?.plan || 'free'}`)}`;
+        + `&body=${encodeURIComponent(`\n\n---\nUsuario: ${user?.email || ''}\nPlan: ${subscription?.plan || 'free'}\nVersión: ${versionDetail()}`)}`;
 
     return (
         <div style={{ minHeight: '100vh' }}>
