@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from './context/AuthContext';
-import { useMatches } from './context/MatchContext';
+import { useAuth } from './hooks/useAuth';
+import { useMatches } from './hooks/useMatches';
 import { useMatchesDB } from './hooks/useMatchesDB';
 import { supabase } from './lib/supabase';
 import GameTracker from './components/GameTracker';

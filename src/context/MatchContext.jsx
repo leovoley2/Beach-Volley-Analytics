@@ -1,11 +1,8 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { useState } from 'react';
+import { MatchContext } from '../hooks/useMatches';
 
 // MatchContext ahora es solo memoria en sesión (no localStorage)
 // Los partidos se persisten en Supabase via useMatchesDB
-const MatchContext = createContext();
-
-export const useMatches = () => useContext(MatchContext);
-
 export const MatchProvider = ({ children }) => {
     const [currentMatch, setCurrentMatch] = useState(null);
 

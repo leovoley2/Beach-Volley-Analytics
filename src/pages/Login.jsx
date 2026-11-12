@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { getLockState, recordFailure, clearAttempts } from '../lib/loginThrottle';
 import { GOOGLE_AUTH_ENABLED } from '../lib/authConfig';
 

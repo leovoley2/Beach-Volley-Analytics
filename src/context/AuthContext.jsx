@@ -1,7 +1,6 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-
-const AuthContext = createContext(null);
+import { AuthContext } from '../hooks/useAuth';
 
 // Las llamadas del cliente Supabase pueden quedarse colgadas (ver lock no-op en
 // lib/supabase.js): en flujos de UI siempre con tope de tiempo.
@@ -220,10 +219,4 @@ export function AuthProvider({ children }) {
             {children}
         </AuthContext.Provider>
     );
-}
-
-export function useAuth() {
-    const ctx = useContext(AuthContext);
-    if (!ctx) throw new Error('useAuth debe usarse dentro de AuthProvider');
-    return ctx;
 }

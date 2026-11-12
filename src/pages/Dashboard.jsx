@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { useMatchesDB } from '../hooks/useMatchesDB';
 import { LEGAL } from '../lib/legalConfig';
 import AccountMenu from '../components/AccountMenu';

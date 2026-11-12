@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { useMatches } from '../context/MatchContext';
+import { useMatches } from '../hooks/useMatches';
 import { SKILL_DETAILS, baseSkillOf } from '../lib/scoutingDetails';
 import {
     SKILLS, OUTCOMES, OUTCOME_DESCRIPTIONS, ATTACK_TYPES,

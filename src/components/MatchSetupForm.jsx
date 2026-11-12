@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useMatches } from '../context/MatchContext';
+import { useMatches } from '../hooks/useMatches';
 
 function MatchSetupForm({ onMatchStart }) {
     const [ownTeamName, setOwnTeamName] = useState('');

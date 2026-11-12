@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import TacticalBoard from './TacticalBoard';
 
 // three.js pesa bastante: la pizarra 3D se descarga solo cuando alguien la abre.

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { useMatches } from '../context/MatchContext';
+import { useMatches } from '../hooks/useMatches';
 import { useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { useMatches } from '../context/MatchContext';
+import { useAuth } from '../hooks/useAuth';
+import { useMatches } from '../hooks/useMatches';
 import { SKILLS, OUTCOMES, ATTACK_TYPES, buildMatchState, computeSetScores, complexFor } from '../lib/scoutingModel';
 import { baseSkillOf } from '../lib/scoutingDetails';
 import ClipExportDialog from './ClipExportDialog';

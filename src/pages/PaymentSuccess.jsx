@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 
 const POLL_INTERVAL_MS = 2000;   // verificar cada 2 segundos
 const MAX_WAIT_MS      = 30000;  // esperar máximo 30 segundos
