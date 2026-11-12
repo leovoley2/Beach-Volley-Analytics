@@ -9,6 +9,16 @@ Cada subida a producción lleva un número de versión (`MAYOR.MENOR.PARCHE`):
 La versión en producción se ve en el menú de cuenta (abajo), en el pie de la página de inicio
 y en https://beachvolleyanalytics.com/version.json.
 
+## 1.2.0 — Guardado sin conexión
+
+- Cada acción se guarda **primero en el equipo** y después en el servidor: si se cae la señal
+  en la cancha, no se pierde nada.
+- Indicador junto al logo: **✓ Guardado**, **Guardando…** o **⚠ Sin conexión · guardado en este equipo**.
+- Reintento automático al volver la conexión, cada 15 s y al reabrir el partido; si se cerró la
+  pestaña sin señal, al volver a abrir el partido se recuperan los cambios.
+- En **Mis partidos**, aviso de partidos con cambios sin subir y botón **Reintentar**.
+- Interno: contextos y hooks separados para el recargado en caliente (sin cambios visibles).
+
 ## 1.1.1 — Video: avisos de pausa y de error
 
 - Cuando un ataque pausa el video para marcar la cancha, aparece un aviso sobre el video con

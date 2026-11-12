@@ -1,26 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useMatchesDB } from '../hooks/useMatchesDB';
 import { LEGAL } from '../lib/legalConfig';
 import AccountMenu from '../components/AccountMenu';
 import { versionDetail } from '../lib/appVersion';
+import { listPending, syncAllPending, clearPending, onSyncChange } from '../lib/offlineSync';
 
 const STATUS_LABEL = { in_progress: 'En progreso', completed: 'Completado' };
 const STATUS_COLOR = { in_progress: '#f97316', completed: '#22c55e' };
 
 export default function Dashboard() {
     const { user, subscription, isPaid } = useAuth();
-    const { matches, loading, monthlyUsed, monthlyLimit, canCreateMatch, deleteMatch } = useMatchesDB();
+    const { matches, loading, monthlyUsed, monthlyLimit, canCreateMatch, deleteMatch, refetch } = useMatchesDB();
     const navigate = useNavigate();
     const [deletingId, setDeletingId] = useState(null);
     const [confirmId, setConfirmId]   = useState(null);
+
+    // Partidos con cambios guardados en este equipo que aún no se subieron (sin conexión).
+    const userId = user?.id;
+    const [pendingCount, setPendingCount] = useState(() => listPending(userId).length);
+    const [syncing, setSyncing] = useState(false);
+    const syncPending = useCallback(async () => {
+        if (!userId || !listPending(userId).length) { setPendingCount(0); return; }
+        setSyncing(true);
+        const synced = await syncAllPending(userId);
+        setSyncing(false);
+        setPendingCount(listPending(userId).length);
+        if (synced) refetch();
+    }, [userId, refetch]);
+    useEffect(() => {
+        syncPending();
+        window.addEventListener('online', syncPending);
+        const off = onSyncChange(() => setPendingCount(listPending(userId).length));
+        return () => { window.removeEventListener('online', syncPending); off(); };
+    }, [syncPending, userId]);
 
     const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuario';
 
     async function handleDelete(id) {
         setDeletingId(id);
-        await deleteMatch(id);
+        const { error } = await deleteMatch(id);
+        if (!error && userId) clearPending(userId, id);
         setDeletingId(null);
         setConfirmId(null);
     }
@@ -52,6 +73,16 @@ export default function Dashboard() {
                     <h2>Mis partidos</h2>
                     <p>Hola, {displayName}. Aquí están todos tus partidos registrados.</p>
                 </div>
+
+                {pendingCount > 0 && (
+                    <div className="sync-banner" role="status">
+                        <span>
+                            ⚠ {pendingCount === 1 ? 'Hay 1 partido' : `Hay ${pendingCount} partidos`} con cambios guardados en este equipo que aún no se subieron.
+                            Se subirán solos cuando vuelva la conexión. <strong>No borres los datos del navegador.</strong>
+                        </span>
+                        <button className="btn-primary" onClick={syncPending} disabled={syncing}>{syncing ? 'Subiendo…' : 'Reintentar'}</button>
+                    </div>
+                )}
 
                 {/* Stats */}
                 <div className="stats-row">

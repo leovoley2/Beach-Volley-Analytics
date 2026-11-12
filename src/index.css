@@ -150,6 +150,30 @@ header {
     text-transform: uppercase;
 }
 
+/* Estado del guardado (respaldo local + sincronización) */
+.sync-badge {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    margin-top: 0.15rem;
+    padding: 0.15rem 0.55rem; border-radius: 999px;
+    font-size: 0.7rem; font-weight: 600; letter-spacing: 0;
+    border: 1px solid var(--border);
+    color: var(--text-secondary); background: transparent;
+}
+.sync-badge.is-saved { color: #22c55e; border-color: rgba(34, 197, 94, 0.35); }
+.sync-badge.is-offline {
+    color: #fbbf24; border-color: rgba(251, 191, 36, 0.5); background: rgba(251, 191, 36, 0.08);
+    cursor: pointer;
+}
+.sync-banner {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem;
+    margin-bottom: 1.25rem; padding: 0.85rem 1rem;
+    border: 1px solid rgba(251, 191, 36, 0.5); border-radius: var(--radius-lg, 12px);
+    background: rgba(251, 191, 36, 0.08);
+    color: var(--text-primary); font-size: 0.88rem; line-height: 1.45;
+}
+.sync-banner span { flex: 1 1 18rem; }
+.sync-banner .btn-primary { padding: 0.5rem 1rem; font-size: 0.85rem; }
+
 header nav {
     display: flex;
     gap: 0.35rem;

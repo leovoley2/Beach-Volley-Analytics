@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { useMatches } from './hooks/useMatches';
-import { useMatchesDB } from './hooks/useMatchesDB';
+import { useMatchSync } from './hooks/useMatchSync';
+import { getPending, clearPending, pickNewer, savePending, pushPending } from './lib/offlineSync';
 import { supabase } from './lib/supabase';
 import GameTracker from './components/GameTracker';
 import ReportViewer from './components/ReportViewer';
@@ -13,10 +14,11 @@ export default function MatchApp() {
     const { matchId }    = useParams();
     const { pathname }   = useLocation();
     const navigate       = useNavigate();
-    const { isPaid, signOut } = useAuth();
+    const { user, isPaid, signOut } = useAuth();
+    const userId = user?.id;
     const { currentMatch, setCurrentMatch, endCurrentMatch } = useMatches();
-    // autoFetch:false → este hook solo se usa para persistir; evita un SELECT innecesario.
-    const { updateMatch: updateMatchDB } = useMatchesDB({ autoFetch: false });
+    // Guardado: primero en el dispositivo, después en Supabase (reintenta sin conexión).
+    const { status: syncStatus, flush, markSynced } = useMatchSync(userId, matchId, currentMatch);
 
     async function handleSignOut() {
         endCurrentMatch();
@@ -38,6 +40,7 @@ export default function MatchApp() {
             if (currentMatch?.id === matchId) return;
 
             setLoadingMatch(true);
+            const pending = getPending(userId, matchId);
             const { data, error } = await supabase
                 .from('matches')
                 .select('*')
@@ -47,12 +50,20 @@ export default function MatchApp() {
             setLoadingMatch(false);
 
             if (error || !data) {
-                setLoadError('No se encontró el partido.');
+                // Sin conexión: abrir la copia guardada en el dispositivo, si la hay.
+                if (error?.code !== 'PGRST116' && pending?.match?.id === matchId) {
+                    setCurrentMatch(pending.match);
+                    return;
+                }
+                if (error?.code === 'PGRST116' && userId) clearPending(userId, matchId);
+                setLoadError(error?.code === 'PGRST116' || !error
+                    ? 'No se encontró el partido.'
+                    : 'No se pudo cargar el partido. Revisa tu conexión.');
                 return;
             }
 
             // Adaptar formato snake_case (Supabase) → camelCase (MatchContext/GameTracker)
-            setCurrentMatch({
+            const fromServer = {
                 id:               data.id,          // Preservar UUID real de Supabase
                 ownTeamName:      data.own_team_name,
                 opponentTeamName: data.opponent_team_name,
@@ -67,37 +78,31 @@ export default function MatchApp() {
                 tournament:       data.tournament        || '',
                 location:         data.location          || '',
                 status:           data.status,
-            });
+            };
+
+            // Cambios guardados en el dispositivo que no alcanzaron a subirse: ganan si son más nuevos.
+            const newer = pickNewer(pending, data.updated_at);
+            if (newer) {
+                const { sets, score, actions, status } = newer.match;
+                setCurrentMatch({ ...fromServer, sets, score, actions, status });
+            } else {
+                if (pending && userId) clearPending(userId, matchId);
+                markSynced(fromServer);
+                setCurrentMatch(fromServer);
+            }
         }
 
         loadMatch();
         // No limpiamos al desmontar para no perder datos al cambiar entre tracker/report.
-    }, [matchId, currentMatch?.id, setCurrentMatch]);
-
-    // Sincronizar cambios del tracker → Supabase (debounce 1.5s)
-    useEffect(() => {
-        if (!currentMatch || currentMatch.id !== matchId) return;
-
-        const timeout = setTimeout(() => {
-            updateMatchDB(matchId, {
-                sets:    currentMatch.sets,
-                score:   currentMatch.score,
-                actions: currentMatch.actions,
-                status:  currentMatch.status || 'in_progress',
-            });
-        }, 1500);
-
-        return () => clearTimeout(timeout);
-    }, [currentMatch, matchId, updateMatchDB]);
+    }, [matchId, currentMatch?.id, setCurrentMatch, userId, markSynced]);
 
     async function handleFinishMatch() {
-        // Guardar estado final en Supabase como completado
-        await updateMatchDB(matchId, {
-            sets:    currentMatch?.sets,
-            score:   currentMatch?.score,
-            actions: currentMatch?.actions,
-            status:  'completed',
-        });
+        // Estado final: se guarda en el dispositivo y se intenta subir. Si no hay conexión,
+        // queda pendiente y se sube solo después (Mis partidos avisa).
+        if (currentMatch && userId) {
+            savePending(userId, { ...currentMatch, status: 'completed' });
+            await pushPending(userId, matchId);
+        }
         endCurrentMatch();
         navigate('/dashboard');
     }
@@ -130,6 +135,7 @@ export default function MatchApp() {
                 <div className="brand">
                     <h1><span>🏐</span>Beach Volley <span className="accent">Analytics</span></h1>
                     <p>Performance Tracking · Match Analysis</p>
+                    {currentMatch && <SyncBadge status={syncStatus} onRetry={flush} />}
                 </div>
                 <nav>
                     <button onClick={() => { endCurrentMatch(); navigate('/dashboard'); }}>← Mis partidos</button>
@@ -186,5 +192,21 @@ export default function MatchApp() {
                 )}
             </main>
         </div>
+    );
+}
+
+// Estado del guardado del partido, junto al logo.
+function SyncBadge({ status, onRetry }) {
+    if (status === 'offline') {
+        return (
+            <button className="sync-badge is-offline" onClick={onRetry} title="Reintentar ahora">
+                ⚠ Sin conexión · guardado en este equipo
+            </button>
+        );
+    }
+    return (
+        <span className={`sync-badge is-${status}`} role="status">
+            {status === 'saving' ? 'Guardando…' : '✓ Guardado'}
+        </span>
     );
 }
