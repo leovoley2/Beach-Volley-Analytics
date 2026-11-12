@@ -36,6 +36,15 @@ const videoCache = new Map(); // matchId → { url, name }
 // play() devuelve una promesa que se rechaza si el navegador bloquea la reproducción.
 const safePlay = (el) => { el?.play()?.catch(() => {}); };
 
+// MediaError.code → explicación para el entrenador.
+const VIDEO_ERROR_TEXT = {
+    0: 'El navegador no pudo seguir reproduciendo el archivo.',
+    1: 'La reproducción se interrumpió.',
+    2: 'El navegador dejó de poder leer el archivo. Suele pasar si el video está en iCloud / Google Drive sin descargar, en un disco externo que se desconectó, o si se movió o modificó mientras estaba abierto.',
+    3: 'El navegador no pudo decodificar una parte del video. Es común con videos HEVC/H.265, 4K o HDR grabados con celular, o con archivos dañados.',
+    4: 'Este navegador no puede reproducir este formato de video (por ejemplo HEVC/H.265 o MKV).',
+};
+
 function uid() {
     return (crypto.randomUUID?.() || `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`);
 }
@@ -76,12 +85,16 @@ function VideoScoutWorkspace({ matchId }) {
     const navigate = useNavigate();
     const videoRef = useRef(null);
     const fileInputRef = useRef(null);
+    const courtRef = useRef(null);
 
     const [videoUrl, setVideoUrl] = useState(() => videoCache.get(matchId)?.url || null);
     const [videoName, setVideoName] = useState(() => videoCache.get(matchId)?.name || '');
     const [savedName, setSavedName] = useState(() => readSavedName(matchId));
     const [dragOver, setDragOver] = useState(false);
     const [speed, setSpeed] = useState(1);
+    // Error del reproductor (archivo ilegible o códec que el navegador no decodifica): { code, at }.
+    const [videoError, setVideoError] = useState(null);
+    const [buffering, setBuffering] = useState(false);
 
     // Clips elegidos desde Tendencias (clic en un número): { ids: Set, label }.
     const [preset, setPreset] = useState(() => {
@@ -145,6 +158,7 @@ function VideoScoutWorkspace({ matchId }) {
         const url = URL.createObjectURL(file);
         videoCache.set(matchId, { url, name: file.name });
         setVideoUrl(url);
+        setVideoError(null);
         setVideoName(file.name);
         setSavedName(file.name);
         try { localStorage.setItem(videoNameKey(matchId), file.name); } catch { /* sin almacenamiento */ }
@@ -167,6 +181,27 @@ function VideoScoutWorkspace({ matchId }) {
     const stepSpeed = (dir) => {
         const i = SPEEDS.indexOf(speed);
         changeSpeed(SPEEDS[Math.max(0, Math.min(SPEEDS.length - 1, (i < 0 ? 2 : i) + dir))]);
+    };
+
+    // Cuando el navegador falla al decodificar o leer el archivo, el <video> queda detenido y ya
+    // no responde (ni volviendo al inicio). Recargarlo y seguir un poco más adelante suele
+    // saltar el fragmento dañado.
+    const onVideoError = (e) => {
+        const el = e.currentTarget;
+        setBuffering(false);
+        setVideoError({ code: el.error?.code || 0, at: el.currentTime || 0 });
+    };
+    const recoverVideo = (skip = 0.5) => {
+        const el = v();
+        if (!el || !videoError) return;
+        const at = videoError.at + skip;
+        setVideoError(null);
+        el.addEventListener('loadedmetadata', () => {
+            el.playbackRate = speed;
+            el.currentTime = Math.min(at, el.duration || at);
+            safePlay(el);
+        }, { once: true });
+        el.load();
     };
 
     // -------------------------------------------------------------- clips
@@ -413,7 +448,34 @@ function VideoScoutWorkspace({ matchId }) {
                                 controls
                                 playsInline
                                 onLoadedMetadata={e => { e.currentTarget.playbackRate = speed; }}
+                                onError={onVideoError}
+                                onWaiting={() => setBuffering(true)}
+                                onPlaying={() => setBuffering(false)}
+                                onSeeked={() => setBuffering(false)}
                             />
+                            {buffering && !videoError && <div className="vs-buffering">Cargando…</div>}
+                            {stage === 'court' && sel.resumeAfter && !videoError && (
+                                // En pantallas angostas (iPad) la cancha queda abajo: sin este aviso
+                                // parece que el video se trabó.
+                                <div className="vs-court-banner" role="status">
+                                    <span>⏸ Ataque en pausa: marca {sel.start ? 'el final' : 'el inicio'} en la cancha</span>
+                                    <button className="vs-link" onClick={() => courtRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>Ir a la cancha</button>
+                                    <button className="btn-primary" onClick={() => saveAction(sel.outcome)}>Omitir y seguir</button>
+                                </div>
+                            )}
+                            {videoError && (
+                                <div className="vs-error" role="alert">
+                                    <strong>El video se detuvo en {fmtTime(videoError.at, false)}</strong>
+                                    <p className="vs-error-tip">{videoName}{videoError.code ? ` · error ${videoError.code}` : ''}</p>
+                                    <p>{VIDEO_ERROR_TEXT[videoError.code] || VIDEO_ERROR_TEXT[0]}</p>
+                                    <div className="vs-error-actions">
+                                        <button className="btn-primary" onClick={() => recoverVideo(0.5)}>Reintentar desde aquí</button>
+                                        <button className="btn-cancel" onClick={() => recoverVideo(5)}>Saltar 5 s</button>
+                                        <button className="btn-cancel" onClick={() => fileInputRef.current?.click()}>Elegir otro archivo</button>
+                                    </div>
+                                    <p className="vs-error-tip">Si se repite: convierte el video a <strong>MP4 (H.264)</strong> —por ejemplo con HandBrake, preset «Fast 1080p30»— y asegúrate de que el archivo esté descargado en tu equipo (no solo en iCloud o Google Drive).</p>
+                                </div>
+                            )}
                             {playingAction && (
                                 <div className="vs-overlay">
                                     <span className="vs-overlay-count">Clip {nowPlaying.idx + 1}/{nowPlaying.items.length}</span>
@@ -532,7 +594,7 @@ function VideoScoutWorkspace({ matchId }) {
                         </div>
 
                         {stage === 'court' && (
-                            <div className="vs-step is-on vs-court-step">
+                            <div className="vs-step is-on vs-court-step" ref={courtRef}>
                                 <div className="vs-court-head">
                                     <h5>Cancha</h5>
                                     <div className="vs-court-phase">

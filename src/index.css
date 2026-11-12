@@ -2842,6 +2842,36 @@ input[type="text"]:focus, select:focus, .form-input:focus {
     pointer-events: none; white-space: nowrap;
 }
 
+.vs-buffering {
+    position: absolute; top: 0.75rem; right: 0.75rem;
+    padding: 0.3rem 0.65rem; border-radius: 999px;
+    background: rgba(10, 12, 16, 0.82); border: 1px solid var(--border-strong);
+    color: var(--text-secondary); font-size: 0.78rem; font-weight: 600;
+    pointer-events: none;
+}
+.vs-court-banner {
+    position: absolute; left: 50%; bottom: 3.5rem; transform: translateX(-50%);
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.5rem;
+    width: max-content; max-width: calc(100% - 1.5rem);
+    padding: 0.5rem 0.75rem; border-radius: var(--radius);
+    background: rgba(10, 12, 16, 0.9); border: 1px solid var(--accent, #f97316);
+    color: var(--text-primary); font-size: 0.85rem; font-weight: 600;
+}
+.vs-court-banner .btn-primary { padding: 0.4rem 0.75rem; font-size: 0.8rem; }
+.vs-error {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem;
+    padding: 1.25rem; text-align: center;
+    background: rgba(10, 12, 16, 0.92);
+    color: var(--text-primary);
+    overflow: auto;
+}
+.vs-error strong { font-size: 1rem; }
+.vs-error p { margin: 0; max-width: 34rem; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.45; }
+.vs-error-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; }
+.vs-error-actions button { padding: 0.45rem 0.8rem; font-size: 0.82rem; }
+.vs-error .vs-error-tip { font-size: 0.78rem; }
+
 .vs-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; justify-content: space-between; }
 .vs-tool-group { display: flex; gap: 0.25rem; }
 .vs-tool-group button, .vs-change { padding: 0.4rem 0.65rem; font-size: 0.78rem; }

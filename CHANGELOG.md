@@ -9,6 +9,14 @@ Cada subida a producción lleva un número de versión (`MAYOR.MENOR.PARCHE`):
 La versión en producción se ve en el menú de cuenta (abajo), en el pie de la página de inicio
 y en https://beachvolleyanalytics.com/version.json.
 
+## 1.1.1 — Video: avisos de pausa y de error
+
+- Cuando un ataque pausa el video para marcar la cancha, aparece un aviso sobre el video con
+  **Ir a la cancha** y **Omitir y seguir** (en iPad la cancha queda fuera de la pantalla).
+- Si el navegador no puede leer o decodificar el video, se muestra la causa probable y botones
+  para **reintentar desde ese punto**, **saltar 5 s** o elegir otro archivo.
+- Indicador "Cargando…" cuando el reproductor espera datos.
+
 ## 1.1.0 — Scouting en video (PRO)
 
 - Pestaña **Video** en cada partido: abre el video del partido desde tu computadora (no se sube)
