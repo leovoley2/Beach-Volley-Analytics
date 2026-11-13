@@ -1,15 +1,41 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMatchesDB } from '../hooks/useMatchesDB';
 import AccountMenu from '../components/AccountMenu';
+import { fetchTournaments, normalizeName } from '../lib/tournamentsApi';
+
+const NEW_MATCH_COLUMNS = 'id, tournament, location, match_date, created_at';
 
 export default function NewMatch() {
-    const { createMatch } = useMatchesDB();
+    const { createMatch, matches } = useMatchesDB({ columns: NEW_MATCH_COLUMNS });
     const navigate = useNavigate();
+    const [params] = useSearchParams();
 
     const [mode, setMode]           = useState('scouting'); // 'scouting' | 'completo'
-    const [tournament, setTournament] = useState('');
+    const [tournament, setTournament] = useState(() => params.get('torneo') || '');
     const [location, setLocation]   = useState('');
+    const [tournaments, setTournaments] = useState([]);
+    useEffect(() => { fetchTournaments().then(setTournaments).catch(() => {}); }, []);
+
+    // Torneos recientes (por último partido) + los creados sin partidos, sin repetir.
+    const recentTournaments = useMemo(() => {
+        const seen = new Map();
+        const byDate = [...matches].sort((a, b) => (b.match_date || b.created_at || '').localeCompare(a.match_date || a.created_at || ''));
+        for (const m of byDate) {
+            const k = normalizeName(m.tournament);
+            if (k && !seen.has(k)) seen.set(k, m.tournament.trim());
+        }
+        for (const t of tournaments) { const k = normalizeName(t.name); if (!seen.has(k)) seen.set(k, t.name); }
+        for (const t of tournaments) seen.set(normalizeName(t.name), t.name); // nombre oficial
+        return [...seen.values()];
+    }, [matches, tournaments]);
+
+    // Si el torneo elegido tiene sede guardada, usarla como ubicación por defecto.
+    const pickTournament = (name) => {
+        setTournament(name);
+        const meta = tournaments.find(t => normalizeName(t.name) === normalizeName(name));
+        if (meta?.location && !location) setLocation(meta.location);
+    };
     const [matchDate, setMatchDate] = useState(new Date().toISOString().split('T')[0]);
     const [ownP1, setOwnP1]         = useState('');
     const [ownP2, setOwnP2]         = useState('');
@@ -31,9 +57,11 @@ export default function NewMatch() {
         const ownPlayers  = [{ id: crypto.randomUUID(), name: ownP1 }, { id: crypto.randomUUID(), name: ownP2 }];
         const oppPlayers  = [{ id: crypto.randomUUID(), name: oppP1 }, { id: crypto.randomUUID(), name: oppP2 }];
 
+        // Unificar con el nombre exacto de un torneo existente (mayúsculas/espacios).
+        const existing = recentTournaments.find(n => normalizeName(n) === normalizeName(tournament));
         const { data, error } = await createMatch({
             match_type:         mode,
-            tournament,
+            tournament:         existing || tournament.trim().replace(/\s+/g, ' '),
             location,
             match_date:         matchDate,
             own_team_name:      ownTeam,
@@ -101,7 +129,15 @@ export default function NewMatch() {
 
                         <div className="form-group">
                             <label>Torneo / Evento</label>
-                            <input className="form-input" type="text" placeholder="Ej: Copa Regional 2026" value={tournament} onChange={e => setTournament(e.target.value)} />
+                            <input className="form-input" type="text" list="nm-tournaments" placeholder="Ej: Copa Regional 2026" value={tournament} onChange={e => pickTournament(e.target.value)} />
+                            <datalist id="nm-tournaments">{recentTournaments.map(n => <option key={n} value={n} />)}</datalist>
+                            {recentTournaments.length > 0 && (
+                                <div className="t-suggest">
+                                    {recentTournaments.slice(0, 5).map(n => (
+                                        <button type="button" key={n} className={`chip${normalizeName(n) === normalizeName(tournament) ? ' on' : ''}`} onClick={() => pickTournament(n)}>{n}</button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                             <div className="form-group">

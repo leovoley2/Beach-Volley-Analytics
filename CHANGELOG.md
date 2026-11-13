@@ -9,6 +9,26 @@ Cada subida a producción lleva un número de versión (`MAYOR.MENOR.PARCHE`):
 La versión en producción se ve en el menú de cuenta (abajo), en el pie de la página de inicio
 y en https://beachvolleyanalytics.com/version.json.
 
+## 1.5.0 — Mis partidos por torneo
+
+- **Mis partidos** ahora se organiza por **torneo**: cada torneo es una tarjeta con portada,
+  sede, fechas, número de partidos y acciones. Al abrirlo se ven sus partidos agrupados por día,
+  con marcador y parciales de cada set.
+- **Portada del torneo**: sube una imagen (se reduce sola para que cargue rápido), elige un
+  color y añade sede y fechas. Sin imagen se genera una ilustración propia para cada torneo.
+- Diseño nuevo: torneos como pósters agrupados por año, con el más reciente destacado;
+  marcador tipo tablero (un equipo por línea, sets y parciales) y transición animada al abrir
+  un torneo.
+- La barra superior ya no se desborda en el móvil.
+- Vista **Cronología** (todos los partidos por mes), **buscador** por jugador, equipo o torneo
+  y filtros **En progreso / Completados**.
+- Franja **Continuar** con los partidos sin terminar, siempre arriba.
+- **Mover a torneo**: reasigna un partido antiguo a otro torneo para ordenar el archivo.
+  Al renombrar un torneo se renombran también sus partidos.
+- En **Nuevo partido** se sugieren tus torneos recientes y, desde un torneo, el partido nuevo
+  queda dentro de él.
+- La lista carga más rápido: ya no descarga todas las acciones de cada partido.
+
 ## 1.4.0 — Video pesado en iPad
 
 - Los videos pesados se reproducen **por partes**: la app le entrega el archivo al reproductor en

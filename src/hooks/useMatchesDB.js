@@ -17,7 +17,8 @@ function friendlyError(error) {
     return msg;
 }
 
-export function useMatchesDB({ autoFetch = true } = {}) {
+// `columns` permite listar sin descargar las acciones de cada partido (ver Dashboard).
+export function useMatchesDB({ autoFetch = true, columns = '*' } = {}) {
     const { user, isPaid } = useAuth();
     const [matches, setMatches]   = useState([]);
     // Si no hacemos fetch automático, no arrancamos en estado "loading".
@@ -29,14 +30,14 @@ export function useMatchesDB({ autoFetch = true } = {}) {
         setLoading(true);
         const { data, error } = await supabase
             .from('matches')
-            .select('*')
+            .select(columns)
             .eq('user_id', user.id)
             .order('created_at', { ascending: false });
 
         if (error) setError(error.message);
         else setMatches(data || []);
         setLoading(false);
-    }, [user]);
+    }, [user, columns]);
 
     // autoFetch=false evita un SELECT innecesario cuando el hook se usa solo
     // para mutaciones (ej. MatchApp solo necesita updateMatch).
