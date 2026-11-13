@@ -7,6 +7,7 @@ import { baseSkillOf } from '../lib/scoutingDetails';
 import ClipExportDialog from './ClipExportDialog';
 import { clipBounds, filterClips, matchesFilters, hasVideoTime, totalDuration, fmtTime } from '../lib/videoClips';
 import { openVideoSource, prefersChunks, chunksSupported, ensureChunkWorker } from '../lib/localVideo';
+import { IconUpload } from './Icons';
 
 // Scouting en video (PRO): el entrenador abre el video del partido desde su computadora,
 // registra las acciones mientras lo mira y después filtra por atleta / fundamento / resultado
@@ -618,10 +619,10 @@ function VideoScoutWorkspace({ matchId }) {
                         </>
                     ) : (
                         <div className="vs-drop">
-                            <div className="vs-drop-icon">🎬</div>
+                            <div className="vs-drop-icon"><IconUpload size={26} /></div>
                             <h3>Abre el video del partido</h3>
-                            <p>Arrástralo aquí o elígelo de tu computadora (MP4, MOV o WebM).</p>
-                            <button className="btn-primary" onClick={() => fileInputRef.current?.click()}>Elegir video</button>
+                            <p>Arrástralo aquí o elígelo de tu equipo. MP4, MOV o WebM.</p>
+                            <button className="btn-new" onClick={() => fileInputRef.current?.click()}>Elegir video</button>
                             {savedName && <p className="vs-drop-note">Último video usado en este partido: <strong>{savedName}</strong></p>}
                             <p className="vs-drop-note">El video no se sube a internet: se reproduce desde tu equipo y solo se guardan las acciones.</p>
                         </div>

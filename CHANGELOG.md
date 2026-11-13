@@ -9,6 +9,19 @@ Cada subida a producción lleva un número de versión (`MAYOR.MENOR.PARCHE`):
 La versión en producción se ve en el menú de cuenta (abajo), en el pie de la página de inicio
 y en https://beachvolleyanalytics.com/version.json.
 
+## 1.6.0 — Nuevo partido, Tendencias y Video renovados
+
+- **Nuevo partido** en tres pasos (qué registras, torneo y fecha, equipos) con una **vista
+  previa en vivo** del partido. Los nombres de jugadores se **autocompletan** con los que ya
+  usaste, y un botón intercambia Equipo A y Equipo B.
+- **Barra del partido** nueva y compacta en Partido, Video, Tendencias y Pizarra: equipos,
+  torneo, fecha y estado de guardado siempre a la vista.
+- **Tendencias**: marcador del partido arriba, todos los filtros en un solo panel (con
+  contador y «Limpiar»), filtro por jugador junto a los demás y accesos **«Ir a»** para saltar
+  al informe de cada jugador. El informe se ve como una hoja más ancha.
+- **Video**: zona para abrir el video más clara, pasos numerados para registrar, controles de
+  reproducción agrupados y resultados con su color.
+
 ## 1.5.0 — Mis partidos por torneo
 
 - **Mis partidos** ahora se organiza por **torneo**: cada torneo es una tarjeta con portada,

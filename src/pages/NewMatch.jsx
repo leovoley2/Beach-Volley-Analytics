@@ -2,18 +2,41 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMatchesDB } from '../hooks/useMatchesDB';
 import AccountMenu from '../components/AccountMenu';
+import TournamentArt from '../components/TournamentArt';
+import { IconEye, IconLayers, IconSwap, IconPin, IconCalendar, IconBack, IconChevron } from '../components/Icons';
 import { fetchTournaments, normalizeName } from '../lib/tournamentsApi';
+import { colorFor, formatDay } from '../lib/matchGrouping';
 
-const NEW_MATCH_COLUMNS = 'id, tournament, location, match_date, created_at';
+const NEW_MATCH_COLUMNS = 'id, tournament, location, match_date, created_at, own_players, opponent_players';
+
+const MODES = [
+    { id: 'scouting', icon: <IconEye size={20} />, title: 'Scouting de tendencias', tag: 'Recomendado',
+      desc: 'Los ataques del rival: tipo, zona y resultado. Ideal para preparar el partido.' },
+    { id: 'completo', icon: <IconLayers size={20} />, title: 'Análisis completo K1/K2', tag: 'Análisis propio',
+      desc: 'Todos los fundamentos: saque, recepción, armado, ataque, bloqueo y defensa.' },
+];
+
+const today = () => {
+    const d = new Date();
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+};
 
 export default function NewMatch() {
-    const { createMatch, matches } = useMatchesDB({ columns: NEW_MATCH_COLUMNS });
+    const { createMatch, matches, canCreateMatch, loading: loadingMatches } = useMatchesDB({ columns: NEW_MATCH_COLUMNS });
     const navigate = useNavigate();
     const [params] = useSearchParams();
 
-    const [mode, setMode]           = useState('scouting'); // 'scouting' | 'completo'
+    const [mode, setMode]             = useState('scouting'); // 'scouting' | 'completo'
     const [tournament, setTournament] = useState(() => params.get('torneo') || '');
-    const [location, setLocation]   = useState('');
+    const [location, setLocation]     = useState('');
+    const [matchDate, setMatchDate]   = useState(today);
+    const [ownP1, setOwnP1]           = useState('');
+    const [ownP2, setOwnP2]           = useState('');
+    const [oppP1, setOppP1]           = useState('');
+    const [oppP2, setOppP2]           = useState('');
+    const [error, setError]           = useState('');
+    const [tried, setTried]           = useState(false);
+    const [loading, setLoading]       = useState(false);
     const [tournaments, setTournaments] = useState([]);
     useEffect(() => { fetchTournaments().then(setTournaments).catch(() => {}); }, []);
 
@@ -25,49 +48,59 @@ export default function NewMatch() {
             const k = normalizeName(m.tournament);
             if (k && !seen.has(k)) seen.set(k, m.tournament.trim());
         }
-        for (const t of tournaments) { const k = normalizeName(t.name); if (!seen.has(k)) seen.set(k, t.name); }
         for (const t of tournaments) seen.set(normalizeName(t.name), t.name); // nombre oficial
         return [...seen.values()];
     }, [matches, tournaments]);
 
+    // Jugadores ya usados en partidos anteriores, para autocompletar.
+    const knownPlayers = useMemo(() => {
+        const seen = new Map();
+        for (const m of matches) {
+            for (const p of [...(m.own_players || []), ...(m.opponent_players || [])]) {
+                const name = p?.name?.trim();
+                if (name && !seen.has(name.toLowerCase())) seen.set(name.toLowerCase(), name);
+            }
+        }
+        return [...seen.values()].sort((a, b) => a.localeCompare(b));
+    }, [matches]);
+
+    const meta = tournaments.find(t => normalizeName(t.name) === normalizeName(tournament));
+    const tName = tournament.trim();
+    const tColor = colorFor(tName || 'Nuevo partido', meta?.color);
+
     // Si el torneo elegido tiene sede guardada, usarla como ubicación por defecto.
     const pickTournament = (name) => {
         setTournament(name);
-        const meta = tournaments.find(t => normalizeName(t.name) === normalizeName(name));
-        if (meta?.location && !location) setLocation(meta.location);
+        const m = tournaments.find(t => normalizeName(t.name) === normalizeName(name));
+        if (m?.location && !location) setLocation(m.location);
     };
-    const [matchDate, setMatchDate] = useState(new Date().toISOString().split('T')[0]);
-    const [ownP1, setOwnP1]         = useState('');
-    const [ownP2, setOwnP2]         = useState('');
-    const [oppP1, setOppP1]         = useState('');
-    const [oppP2, setOppP2]         = useState('');
-    const [error, setError]         = useState('');
-    const [loading, setLoading]     = useState(false);
+
+    const swapTeams = () => {
+        setOwnP1(oppP1); setOwnP2(oppP2); setOppP1(ownP1); setOppP2(ownP2);
+    };
+
+    const missing = [ownP1, ownP2, oppP1, oppP2].filter(n => !n.trim()).length;
+    const teamLabel = (a, b, fallback) => (a.trim() || b.trim() ? `${a.trim() || '—'} / ${b.trim() || '—'}` : fallback);
 
     async function handleStart(e) {
         e.preventDefault();
-        if (!ownP1 || !ownP2 || !oppP1 || !oppP2) {
-            setError('Completa los nombres de los 4 jugadores.'); return;
-        }
+        setTried(true);
+        if (missing) { setError(`Falta${missing > 1 ? 'n' : ''} ${missing} nombre${missing > 1 ? 's' : ''} de jugador.`); return; }
         setLoading(true);
         setError('');
 
-        const ownTeam  = `${ownP1} / ${ownP2}`;
-        const oppTeam  = `${oppP1} / ${oppP2}`;
-        const ownPlayers  = [{ id: crypto.randomUUID(), name: ownP1 }, { id: crypto.randomUUID(), name: ownP2 }];
-        const oppPlayers  = [{ id: crypto.randomUUID(), name: oppP1 }, { id: crypto.randomUUID(), name: oppP2 }];
-
+        const [a1, a2, b1, b2] = [ownP1, ownP2, oppP1, oppP2].map(n => n.trim());
         // Unificar con el nombre exacto de un torneo existente (mayúsculas/espacios).
         const existing = recentTournaments.find(n => normalizeName(n) === normalizeName(tournament));
         const { data, error } = await createMatch({
             match_type:         mode,
             tournament:         existing || tournament.trim().replace(/\s+/g, ' '),
-            location,
+            location:           location.trim(),
             match_date:         matchDate,
-            own_team_name:      ownTeam,
-            opponent_team_name: oppTeam,
-            own_players:        ownPlayers,
-            opponent_players:   oppPlayers,
+            own_team_name:      `${a1} / ${a2}`,
+            opponent_team_name: `${b1} / ${b2}`,
+            own_players:        [{ id: crypto.randomUUID(), name: a1 }, { id: crypto.randomUUID(), name: a2 }],
+            opponent_players:   [{ id: crypto.randomUUID(), name: b1 }, { id: crypto.randomUUID(), name: b2 }],
             sets:               [{ own: 0, opponent: 0 }],
             score:              { own: 0, opponent: 0 },
             sets_to_win:        2,
@@ -79,101 +112,144 @@ export default function NewMatch() {
         navigate(`/match/${data.id}/tracker`);
     }
 
+    const playerInput = (value, set, label) => (
+        <label className={`nm-player${tried && !value.trim() ? ' is-missing' : ''}`}>
+            <span>{label}</span>
+            <input className="form-input" type="text" list="nm-players" placeholder="Nombre" autoComplete="off"
+                value={value} onChange={e => set(e.target.value)} />
+        </label>
+    );
+
+    const blocked = !loadingMatches && !canCreateMatch;
+    const modeInfo = MODES.find(m => m.id === mode);
+
     return (
-        <div style={{ minHeight: '100vh' }}>
+        <div className="dash-root" style={{ '--t-color': tColor }}>
             <div className="topbar">
                 <div className="topbar-brand">🏐 Beach Volley <span className="accent">Analytics</span></div>
                 <div className="topbar-nav">
                     <button onClick={() => navigate('/dashboard')}>Mis partidos</button>
                     <button className="active">Nuevo partido</button>
+                    <button onClick={() => navigate('/pizarra')}>Pizarra</button>
                 </div>
-                <div className="topbar-right">
-                    <AccountMenu />
-                </div>
+                <div className="topbar-right"><AccountMenu /></div>
             </div>
 
-            <div className="page-wrap">
-                <div className="page-header">
-                    <h2>Configurar partido</h2>
-                    <p>Ingresa los datos antes de iniciar el seguimiento.</p>
+            <div className="page-wrap page-wrap--wide nm">
+                <button type="button" className="nm-back" onClick={() => navigate(-1)}><IconBack size={15} /> Volver</button>
+                <div className="dash-head">
+                    <div className="dash-head-text">
+                        <div className="dash-kicker">Nuevo partido</div>
+                        <h1>Prepara el registro</h1>
+                        <p>Tres datos y empiezas: qué registras, dónde se juega y quién juega.</p>
+                    </div>
                 </div>
 
-                <form onSubmit={handleStart} style={{ maxWidth: 580 }}>
-                    {/* Selector de modo */}
-                    <div style={{ marginBottom: '1.5rem' }}>
-                        <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>¿Qué vas a registrar?</div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
-                            {[
-                                { id: 'scouting', icon: '🕵️', title: 'Scouting de Tendencias', desc: 'Analiza los ataques del rival — tipo, zona y resultado. Ideal para preparar el partido.', tag: 'RECOMENDADO', tagColor: 'var(--accent)' },
-                                { id: 'completo', icon: '📊', title: 'Análisis Completo K1/K2', desc: 'Registra todos los fundamentos: Saque, Recepción, Armado, Ataque, Bloqueo y Defensa.', tag: 'ANÁLISIS PROPIO', tagColor: 'var(--text-muted)' },
-                            ].map(m => (
-                                <button key={m.id} type="button" onClick={() => setMode(m.id)} style={{
-                                    display: 'flex', flexDirection: 'column', gap: '0.5rem',
-                                    padding: '1.25rem', borderRadius: 'var(--radius-lg)', textAlign: 'left',
-                                    cursor: 'pointer', transition: 'var(--trans)',
-                                    background: mode === m.id ? `${m.tagColor === 'var(--accent)' ? 'rgba(249,115,22,0.1)' : 'rgba(59,130,246,0.08)'}` : 'var(--bg-card-alt)',
-                                    border: `2px solid ${mode === m.id ? (m.id === 'scouting' ? 'var(--accent)' : 'var(--accent-blue)') : 'var(--border)'}`,
-                                }}>
-                                    <span style={{ fontSize: '1.5rem' }}>{m.icon}</span>
-                                    <span style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary)' }}>{m.title}</span>
-                                    <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{m.desc}</span>
-                                    <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '0.15rem 0.55rem', borderRadius: '50px', background: mode === m.id ? `${m.tagColor}20` : 'var(--bg-hover)', color: mode === m.id ? m.tagColor : 'var(--text-muted)', border: `1px solid ${mode === m.id ? m.tagColor : 'var(--border)'}`, alignSelf: 'flex-start' }}>{m.tag}</span>
-                                </button>
-                            ))}
-                        </div>
+                {blocked && (
+                    <div className="sync-banner" role="status">
+                        <span>Alcanzaste el límite mensual del plan Free. Actualiza a Pro para crear más partidos.</span>
+                        <button className="btn-primary" onClick={() => navigate('/pricing')}>Ver planes</button>
                     </div>
+                )}
 
-                    {/* Datos del partido */}
-                    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '1.75rem' }}>
-                        <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '1.25rem' }}>Información del partido</h3>
+                <form className="nm-layout" onSubmit={handleStart} noValidate>
+                    <div className="nm-form">
+                        <section className="nm-step">
+                            <h2><span className="nm-num">1</span> ¿Qué vas a registrar?</h2>
+                            <div className="nm-modes" role="radiogroup" aria-label="Tipo de registro">
+                                {MODES.map(({ id, icon, title, desc, tag }) => (
+                                    <button key={id} type="button" role="radio" aria-checked={mode === id}
+                                        className={`nm-mode nm-mode--${id}${mode === id ? ' on' : ''}`} onClick={() => setMode(id)}>
+                                        <span className="nm-mode-icon">{icon}</span>
+                                        <span className="nm-mode-text">
+                                            <strong>{title}</strong>
+                                            <span>{desc}</span>
+                                        </span>
+                                        <span className="nm-mode-tag">{tag}</span>
+                                        <span className="nm-radio" aria-hidden />
+                                    </button>
+                                ))}
+                            </div>
+                        </section>
 
-                        <div className="form-group">
-                            <label>Torneo / Evento</label>
-                            <input className="form-input" type="text" list="nm-tournaments" placeholder="Ej: Copa Regional 2026" value={tournament} onChange={e => pickTournament(e.target.value)} />
-                            <datalist id="nm-tournaments">{recentTournaments.map(n => <option key={n} value={n} />)}</datalist>
-                            {recentTournaments.length > 0 && (
-                                <div className="t-suggest">
-                                    {recentTournaments.slice(0, 5).map(n => (
-                                        <button type="button" key={n} className={`chip${normalizeName(n) === normalizeName(tournament) ? ' on' : ''}`} onClick={() => pickTournament(n)}>{n}</button>
-                                    ))}
+                        <section className="nm-step">
+                            <h2><span className="nm-num">2</span> Torneo y fecha</h2>
+                            <div className="form-group">
+                                <label htmlFor="nm-t">Torneo o evento</label>
+                                <input id="nm-t" className="form-input" type="text" list="nm-tournaments" autoComplete="off"
+                                    placeholder="Ej: Circuito Sudamericano · Lima" value={tournament} onChange={e => pickTournament(e.target.value)} />
+                                <datalist id="nm-tournaments">{recentTournaments.map(n => <option key={n} value={n} />)}</datalist>
+                                {recentTournaments.length > 0 && (
+                                    <div className="t-suggest">
+                                        {recentTournaments.slice(0, 6).map(n => (
+                                            <button type="button" key={n} className={`chip${normalizeName(n) === normalizeName(tournament) ? ' on' : ''}`} onClick={() => pickTournament(n)}>{n}</button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="nm-two">
+                                <div className="form-group">
+                                    <label htmlFor="nm-d">Fecha</label>
+                                    <input id="nm-d" className="form-input" type="date" value={matchDate} onChange={e => setMatchDate(e.target.value)} />
                                 </div>
-                            )}
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                            <div className="form-group">
-                                <label>Fecha</label>
-                                <input className="form-input" type="date" value={matchDate} onChange={e => setMatchDate(e.target.value)} />
+                                <div className="form-group">
+                                    <label htmlFor="nm-l">Cancha o sede</label>
+                                    <input id="nm-l" className="form-input" type="text" placeholder="Cancha 1" value={location} onChange={e => setLocation(e.target.value)} />
+                                </div>
                             </div>
-                            <div className="form-group">
-                                <label>Ubicación</label>
-                                <input className="form-input" type="text" placeholder="Cancha 1" value={location} onChange={e => setLocation(e.target.value)} />
-                            </div>
-                        </div>
+                        </section>
 
-                        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', marginBottom: '1rem' }}>
-                            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>EQUIPO A (el que analizas)</div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                <div className="form-group"><label>Jugador 1</label><input className="form-input" type="text" placeholder="Nombre" value={ownP1} onChange={e => setOwnP1(e.target.value)} required /></div>
-                                <div className="form-group"><label>Jugador 2</label><input className="form-input" type="text" placeholder="Nombre" value={ownP2} onChange={e => setOwnP2(e.target.value)} required /></div>
+                        <section className="nm-step">
+                            <h2><span className="nm-num">3</span> Equipos</h2>
+                            <div className="nm-teams">
+                                <div className="nm-team nm-team--a">
+                                    <div className="nm-team-head"><span className="nm-team-dot" /> Equipo A <small>el que analizas</small></div>
+                                    {playerInput(ownP1, setOwnP1, 'Jugador 1')}
+                                    {playerInput(ownP2, setOwnP2, 'Jugador 2')}
+                                </div>
+                                <button type="button" className="nm-swap" onClick={swapTeams} title="Intercambiar equipos" aria-label="Intercambiar equipos">
+                                    <IconSwap size={16} />
+                                </button>
+                                <div className="nm-team nm-team--b">
+                                    <div className="nm-team-head"><span className="nm-team-dot" /> Equipo B <small>rival</small></div>
+                                    {playerInput(oppP1, setOppP1, 'Jugador 1')}
+                                    {playerInput(oppP2, setOppP2, 'Jugador 2')}
+                                </div>
                             </div>
-                        </div>
-                        <div>
-                            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>EQUIPO B (rival)</div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                <div className="form-group"><label>Jugador 1</label><input className="form-input" type="text" placeholder="Nombre" value={oppP1} onChange={e => setOppP1(e.target.value)} required /></div>
-                                <div className="form-group"><label>Jugador 2</label><input className="form-input" type="text" placeholder="Nombre" value={oppP2} onChange={e => setOppP2(e.target.value)} required /></div>
-                            </div>
-                        </div>
-
-                        {error && <p style={{ color: 'var(--c-dn)', fontSize: '0.82rem', marginBottom: '0.75rem' }}>{error}</p>}
-
-                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                            <button type="button" onClick={() => navigate('/dashboard')} style={{ flex: 1, padding: '0.75rem', borderRadius: 'var(--radius)', background: 'var(--bg-card-alt)', border: '1px solid var(--border)', color: 'var(--text-secondary)', cursor: 'pointer' }}>Cancelar</button>
-                            <button type="submit" disabled={loading} style={{ flex: 2, padding: '0.75rem', borderRadius: 'var(--radius)', background: 'var(--accent)', border: 'none', color: 'white', fontWeight: 700, cursor: 'pointer', fontSize: '0.95rem' }}>
-                                {loading ? 'Creando...' : mode === 'scouting' ? 'Iniciar scouting →' : 'Iniciar análisis →'}
-                            </button>
-                        </div>
+                            <datalist id="nm-players">{knownPlayers.map(n => <option key={n} value={n} />)}</datalist>
+                        </section>
                     </div>
+
+                    {/* Vista previa del partido + acción principal */}
+                    <aside className="nm-side">
+                        <div className="nm-preview">
+                            <span className="tcover">
+                                {meta?.image ? <img src={meta.image} alt="" /> : <TournamentArt name={tName || 'Nuevo partido'} color={tColor} />}
+                            </span>
+                            <span className="nm-preview-shade" />
+                            <div className="nm-preview-top">
+                                <span className="glass-pill">{modeInfo.id === 'scouting' ? 'Scouting' : 'Análisis K1/K2'}</span>
+                            </div>
+                            <div className="nm-preview-body">
+                                <div className="nm-preview-t">{tName || 'Sin torneo'}</div>
+                                <div className="nm-preview-teams">
+                                    <span>{teamLabel(ownP1, ownP2, 'Equipo A')}</span>
+                                    <i>vs</i>
+                                    <span>{teamLabel(oppP1, oppP2, 'Equipo B')}</span>
+                                </div>
+                                <div className="nm-preview-meta">
+                                    <span><IconCalendar size={13} /> {formatDay(matchDate)}</span>
+                                    {location.trim() && <span><IconPin size={13} /> {location.trim()}</span>}
+                                </div>
+                            </div>
+                        </div>
+
+                        {error && <p className="nm-error" role="alert">{error}</p>}
+                        <button type="submit" className="btn-new nm-submit" disabled={loading || blocked}>
+                            {loading ? 'Creando…' : <>{mode === 'scouting' ? 'Iniciar scouting' : 'Iniciar análisis'} <IconChevron size={16} /></>}
+                        </button>
+                        <button type="button" className="nm-cancel" onClick={() => navigate('/dashboard')}>Cancelar</button>
+                    </aside>
                 </form>
             </div>
         </div>

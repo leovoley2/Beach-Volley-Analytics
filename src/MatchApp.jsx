@@ -9,6 +9,8 @@ import GameTracker from './components/GameTracker';
 import ReportViewer from './components/ReportViewer';
 import BoardWorkspace from './components/BoardWorkspace';
 import VideoScout from './components/VideoScout';
+import { IconBack, IconPulse, IconVideo, IconChart, IconBoard } from './components/Icons';
+import { formatDay } from './lib/matchGrouping';
 
 export default function MatchApp() {
     const { matchId }    = useParams();
@@ -109,67 +111,59 @@ export default function MatchApp() {
 
     if (loadingMatch) {
         return (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0a0c10', flexDirection: 'column', gap: '1rem' }}>
-                <div style={{ fontSize: '2.5rem', animation: 'spin 1.5s linear infinite' }}>🏐</div>
-                <p style={{ color: '#8a919e', fontFamily: 'Inter, sans-serif', fontSize: '0.9rem' }}>Cargando partido...</p>
-                <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+            <div className="mload" role="status">
+                <span className="mload-ring" />
+                <p>Cargando partido…</p>
             </div>
         );
     }
 
     if (loadError) {
         return (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0a0c10', flexDirection: 'column', gap: '1rem', fontFamily: 'Inter, sans-serif' }}>
-                <div style={{ fontSize: '2rem' }}>⚠️</div>
-                <p style={{ color: '#8a919e' }}>{loadError}</p>
-                <button onClick={() => navigate('/dashboard')} style={{ padding: '0.65rem 1.5rem', background: '#f97316', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 700 }}>
-                    ← Volver al dashboard
-                </button>
+            <div className="mload">
+                <p>{loadError}</p>
+                <button className="btn-new" onClick={() => navigate('/dashboard')}><IconBack size={15} /> Volver a Mis partidos</button>
             </div>
         );
     }
 
     return (
-        <div className={`container ${{ tracker: 'container--tracker', board: 'container--board', video: 'container--video' }[view] || ''}`}>
-            <header>
-                <div className="brand">
-                    <h1><span>🏐</span>Beach Volley <span className="accent">Analytics</span></h1>
-                    <p>Performance Tracking · Match Analysis</p>
-                    {currentMatch && <SyncBadge status={syncStatus} onRetry={flush} />}
+        <div className={`container ${{ tracker: 'container--tracker', board: 'container--board', video: 'container--video', report: 'container--report' }[view] || ''}`}>
+            <div className="mbar">
+                <button className="mbar-back" onClick={() => { endCurrentMatch(); navigate('/dashboard'); }} aria-label="Volver a Mis partidos" title="Mis partidos">
+                    <IconBack size={18} />
+                </button>
+                <div className="mbar-title">
+                    <div className="mbar-teams">
+                        {currentMatch
+                            ? <><span>{currentMatch.ownTeamName}</span><i>vs</i><span>{currentMatch.opponentTeamName}</span></>
+                            : <span>Partido</span>}
+                    </div>
+                    <div className="mbar-sub">
+                        {currentMatch && (
+                            <span className="mbar-meta">
+                                {[currentMatch.tournament, currentMatch.date && formatDay(currentMatch.date)].filter(Boolean).join(' · ')}
+                            </span>
+                        )}
+                        {currentMatch && <SyncBadge status={syncStatus} onRetry={flush} />}
+                    </div>
                 </div>
-                <nav>
-                    <button onClick={() => { endCurrentMatch(); navigate('/dashboard'); }}>← Mis partidos</button>
-                    <button
-                        onClick={() => navigate(`/match/${matchId}/tracker`)}
-                        className={view === 'tracker' ? 'nav-active' : ''}
-                        disabled={!currentMatch}
-                    >
-                        Partido Actual
+                <nav className="mbar-nav" aria-label="Secciones del partido">
+                    <button onClick={() => navigate(`/match/${matchId}/tracker`)} className={view === 'tracker' ? 'on' : ''} disabled={!currentMatch}>
+                        <IconPulse size={15} /> Partido
                     </button>
-                    <button
-                        onClick={() => navigate(`/match/${matchId}/video`)}
-                        className={view === 'video' ? 'nav-active' : ''}
-                        disabled={!currentMatch}
-                    >
-                        Video{!isPaid && <span className="pro-badge">PRO</span>}
+                    <button onClick={() => navigate(`/match/${matchId}/video`)} className={view === 'video' ? 'on' : ''} disabled={!currentMatch}>
+                        <IconVideo size={15} /> Video{!isPaid && <span className="pro-badge">PRO</span>}
                     </button>
-                    <button
-                        onClick={() => navigate(`/match/${matchId}`)}
-                        className={view === 'report' ? 'nav-active' : ''}
-                    >
-                        Tendencias
+                    <button onClick={() => navigate(`/match/${matchId}`)} className={view === 'report' ? 'on' : ''}>
+                        <IconChart size={15} /> Tendencias
                     </button>
-                    <button
-                        onClick={() => navigate(`/match/${matchId}/pizarra`)}
-                        className={view === 'board' ? 'nav-active' : ''}
-                    >
-                        Pizarra
-                    </button>
-                    <button onClick={handleSignOut} style={{ marginLeft: '0.5rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                        Salir
+                    <button onClick={() => navigate(`/match/${matchId}/pizarra`)} className={view === 'board' ? 'on' : ''}>
+                        <IconBoard size={15} /> Pizarra
                     </button>
                 </nav>
-            </header>
+                <button className="mbar-exit" onClick={handleSignOut}>Salir</button>
+            </div>
             <main>
                 {view === 'tracker' && <GameTracker onFinishMatch={handleFinishMatch} />}
                 {view === 'video' && <VideoScout key={matchId} matchId={matchId} />}

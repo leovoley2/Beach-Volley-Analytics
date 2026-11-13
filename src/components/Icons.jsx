@@ -18,3 +18,13 @@ export const IconGrid     = (p) => <Svg {...p}><rect x="3" y="3" width="7" heigh
 export const IconList     = (p) => <Svg {...p}><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></Svg>;
 export const IconTag      = (p) => <Svg {...p}><path d="M3 12V4h8l10 10-8 8L3 12Z" /><circle cx="7.5" cy="8.5" r="1.5" /></Svg>;
 export const IconClose    = (p) => <Svg {...p}><path d="M6 6l12 12M18 6 6 18" /></Svg>;
+export const IconVideo    = (p) => <Svg {...p}><rect x="3" y="6" width="13" height="12" rx="2.5" /><path d="m16 10.5 5-3v9l-5-3" /></Svg>;
+export const IconBoard    = (p) => <Svg {...p}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M12 4v16" /><circle cx="7.5" cy="12" r="1.3" /><path d="m15.5 10 3 4M18.5 10l-3 4" /></Svg>;
+export const IconPulse    = (p) => <Svg {...p}><path d="M3 12h4l2.5-6 4 12 2.5-6h5" /></Svg>;
+export const IconDownload = (p) => <Svg {...p}><path d="M12 4v11M7.5 11 12 15.5 16.5 11M5 20h14" /></Svg>;
+export const IconSwap     = (p) => <Svg {...p}><path d="M7 4 3.5 7.5 7 11M3.5 7.5h17M17 13l3.5 3.5L17 20M20.5 16.5h-17" /></Svg>;
+export const IconLock     = (p) => <Svg {...p}><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></Svg>;
+export const IconEye      = (p) => <Svg {...p}><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" /><circle cx="12" cy="12" r="2.8" /></Svg>;
+export const IconLayers   = (p) => <Svg {...p}><path d="m12 3 9 5-9 5-9-5 9-5ZM3 13l9 5 9-5" /></Svg>;
+export const IconFilter   = (p) => <Svg {...p}><path d="M4 6h16M7 12h10M10 18h4" /></Svg>;
+export const IconUpload   = (p) => <Svg {...p}><path d="M12 16V5M7.5 9 12 4.5 16.5 9M5 20h14" /></Svg>;

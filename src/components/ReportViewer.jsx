@@ -5,6 +5,8 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import PlayerReport from './PlayerReport';
 import { SKILL_DETAILS, baseSkillOf } from '../lib/scoutingDetails';
+import { formatDay } from '../lib/matchGrouping';
+import { IconEdit, IconDownload, IconLock, IconFilter } from './Icons';
 
 const SKILLS = ['Saque', 'Recepción', 'Armado', 'Ataque Contundente', 'Ataque Coloque', 'Ataque 2 Toques', 'Bloqueo', 'Defensa'];
 const SVG_WIDTH = 500, SVG_HEIGHT = 300, COURT_X_PADDING = 50, COURT_Y_PADDING = 50;
@@ -155,6 +157,15 @@ function computeStats(selectedMatch, filteredActions) {
         }
     });
     return playerStats;
+}
+
+function FilterRow({ label, children }) {
+    return (
+        <div className="rf-row">
+            <span className="rf-label">{label}</span>
+            <div className="rf-opts">{children}</div>
+        </div>
+    );
 }
 
 function ReportViewer({ onGoToTracker, isPaid = false, matchId = null }) {
@@ -356,166 +367,159 @@ function ReportViewer({ onGoToTracker, isPaid = false, matchId = null }) {
         onGoToTracker();
     };
 
+    const clearFilters = () => {
+        setSelectedSet(null); setComplexFilter(null); setPlayerFilter(null); setAttackFilter(null); setDetailFilters({});
+    };
+    const activeFilters = [selectedSet !== null, complexFilter, playerFilter, attackFilter].filter(Boolean).length
+        + Object.keys(detailFilters).length;
+    const reportPlayers = stats
+        ? Object.keys(stats).filter(id => Object.values(stats[id].skills).some(sk => sk.total > 0))
+        : [];
+    const jumpTo = (id) => document.getElementById(`jugador-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const ATTACKS = [
+        { key: 'Ataque Contundente', label: 'Contundente', color: '#e74c3c' },
+        { key: 'Ataque Coloque', label: 'Coloque', color: '#a855f7' },
+        { key: 'Ataque 2 Toques', label: '2 Toques', color: '#14b8a6' },
+    ];
+
     return (
-        <div className="card">
-            <h2>Visor de Informes</h2>
-            <div className="form-group">
-                <label>Selecciona un partido para analizar:</label>
-                <select onChange={handleMatchChange} value={selectedMatchId}>
-                    <option value="">-- Elige un partido --</option>
-                    {matches.map(match => (
-                        <option key={match.id} value={match.id}>
-                            {`${match.date} - ${match.ownTeamName} vs ${match.opponentTeamName}`}
-                        </option>
-                    ))}
-                </select>
-            </div>
+        <div className="report-shell">
+            {!matchId && (
+                <div className="form-group">
+                    <label>Selecciona un partido para analizar:</label>
+                    <select onChange={handleMatchChange} value={selectedMatchId}>
+                        <option value="">-- Elige un partido --</option>
+                        {matches.map(match => (
+                            <option key={match.id} value={match.id}>
+                                {`${match.date} - ${match.ownTeamName} vs ${match.opponentTeamName}`}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            )}
 
             {selectedMatch && stats && (
                 <div className="report-content">
-                    {/* Action bar */}
-                    <div className="report-actions">
-                        <button onClick={handleGoToMatch} className="btn-go-match" title="Volver al partido para corregir acciones">
-                            ✏️ Ir al Partido
-                        </button>
-                        {isPaid ? (
-                            <button onClick={generatePdf} className="btn-primary" disabled={isGeneratingPdf}>
-                                {isGeneratingPdf ? 'Generando PDF...' : '📄 Descargar PDF'}
+                    {/* Resumen del partido */}
+                    <section className="rhero">
+                        <div className="rhero-main">
+                            <div className="rhero-kicker">
+                                Tendencias · {selectedMatch.matchType === 'scouting' ? 'Scouting' : 'Análisis K1/K2'}
+                            </div>
+                            <div className="mboard mboard--lg" style={{ '--sets': selectedMatch.sets.length }}>
+                                {[['own', selectedMatch.ownTeamName], ['opponent', selectedMatch.opponentTeamName]].map(([side, name]) => {
+                                    const other = side === 'own' ? 'opponent' : 'own';
+                                    const won = selectedMatch.score[side], lost = selectedMatch.score[other];
+                                    const decided = selectedMatch.status === 'completed' && won !== lost;
+                                    return (
+                                        <div key={side} className={`mboard-line${decided ? (won > lost ? ' win' : ' lose') : ''}`}>
+                                            <span className="mboard-name">{name}</span>
+                                            <span className="mboard-sets num">{won}</span>
+                                            {selectedMatch.sets.map((st, i) => (
+                                                <span key={i} className={`mboard-pt num${st[side] > st[other] ? ' hi' : ''}`}>{st[side]}</span>
+                                            ))}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <div className="rhero-meta">
+                                {[selectedMatch.tournament, selectedMatch.date && formatDay(selectedMatch.date), selectedMatch.location,
+                                    `${(selectedMatch.actions || []).filter(a => a.skill).length} acciones`].filter(Boolean).join(' · ')}
+                            </div>
+                        </div>
+                        <div className="rhero-actions">
+                            <button onClick={handleGoToMatch} className="btn-ghost" title="Volver al partido para corregir acciones">
+                                <IconEdit size={14} /> Corregir acciones
                             </button>
-                        ) : (
-                            <button
-                                className="btn-primary"
-                                onClick={() => window.location.href = '/pricing'}
-                                title="Actualiza a Pro para exportar PDF"
-                                style={{ opacity: 0.85 }}
-                            >
-                                🔒 PDF — Plan Pro
-                            </button>
-                        )}
-                    </div>
-
-                    {/* Set filter tabs */}
-                    <div className="set-filter-tabs">
-                        <button
-                            className={selectedSet === null ? 'set-tab active' : 'set-tab'}
-                            onClick={() => setSelectedSet(null)}
-                        >
-                            Todos los Sets
-                        </button>
-                        {selectedMatch.sets.map((_, i) => (
-                            <button
-                                key={i}
-                                className={selectedSet === i ? 'set-tab active' : 'set-tab'}
-                                onClick={() => setSelectedSet(i)}
-                            >
-                                Set {i + 1}
-                                <span className="set-tab-score">
-                                    {selectedMatch.sets[i].own}–{selectedMatch.sets[i].opponent}
-                                </span>
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* K1 / K2 Complex filter (Only if completely tracking K1/K2) */}
-                    {selectedMatch.matchType !== 'scouting' && (
-                        <div className="complex-filter-bar">
-                            <span className="complex-filter-label">Complejo:</span>
-                            <button
-                                className={complexFilter === null ? 'complex-tab active' : 'complex-tab'}
-                                onClick={() => setComplexFilter(null)}
-                            >
-                                Todos
-                            </button>
-                            <button
-                                className={complexFilter === 'K1' ? 'complex-tab k1 active' : 'complex-tab k1'}
-                                onClick={() => setComplexFilter(complexFilter === 'K1' ? null : 'K1')}
-                                title="K1: Recepción → Armado → Ataque"
-                            >
-                                K1 — Recepción
-                            </button>
-                            <button
-                                className={complexFilter === 'K2' ? 'complex-tab k2 active' : 'complex-tab k2'}
-                                onClick={() => setComplexFilter(complexFilter === 'K2' ? null : 'K2')}
-                                title="K2: Saque → Defensa → Armado → Ataque"
-                            >
-                                K2 — Transición
-                            </button>
-                            {complexFilter && (
-                                <span className="complex-filter-info">
-                                    {complexFilter === 'K1'
-                                        ? '📋 Recepción · Armado · Ataque'
-                                        : '📋 Saque · Defensa · Armado · Ataque'}
-                                </span>
+                            {isPaid ? (
+                                <button onClick={generatePdf} className="btn-new" disabled={isGeneratingPdf}>
+                                    <IconDownload size={15} /> {isGeneratingPdf ? 'Generando PDF…' : 'Descargar PDF'}
+                                </button>
+                            ) : (
+                                <button className="btn-new" onClick={() => window.location.href = '/pricing'} title="Actualiza a Pro para exportar PDF">
+                                    <IconLock size={14} /> PDF · Plan Pro
+                                </button>
                             )}
                         </div>
-                    )}
+                    </section>
 
-                    {/* Attack-type filter: Todos / Contundente / Coloque / 2 Toques */}
-                    <div className="complex-filter-bar">
-                        <span className="complex-filter-label">Tipo de Ataque:</span>
-                        <button
-                            className={attackFilter === null ? 'complex-tab active' : 'complex-tab'}
-                            onClick={() => setAttackFilter(null)}
-                        >
-                            Todos
-                        </button>
-                        <button
-                            className={attackFilter === 'Ataque Contundente' ? 'complex-tab active' : 'complex-tab'}
-                            onClick={() => setAttackFilter(attackFilter === 'Ataque Contundente' ? null : 'Ataque Contundente')}
-                            title="Mostrar solo ataques contundentes (potencia)"
-                            style={attackFilter === 'Ataque Contundente' ? { borderColor: '#e74c3c', color: '#e74c3c', backgroundColor: 'rgba(231,76,60,0.12)' } : {}}
-                        >
-                            ⚡ Contundente
-                        </button>
-                        <button
-                            className={attackFilter === 'Ataque Coloque' ? 'complex-tab active' : 'complex-tab'}
-                            onClick={() => setAttackFilter(attackFilter === 'Ataque Coloque' ? null : 'Ataque Coloque')}
-                            title="Mostrar solo ataques de coloque (colocación)"
-                            style={attackFilter === 'Ataque Coloque' ? { borderColor: '#9b59b6', color: '#9b59b6', backgroundColor: 'rgba(155,89,182,0.12)' } : {}}
-                        >
-                            🎯 Coloque
-                        </button>
-                        <button
-                            className={attackFilter === 'Ataque 2 Toques' ? 'complex-tab active' : 'complex-tab'}
-                            onClick={() => setAttackFilter(attackFilter === 'Ataque 2 Toques' ? null : 'Ataque 2 Toques')}
-                            title="Mostrar solo acciones de 2 toques"
-                            style={attackFilter === 'Ataque 2 Toques' ? { borderColor: '#14b8a6', color: '#14b8a6', backgroundColor: 'rgba(20,184,166,0.12)', borderStyle: 'dashed' } : {}}
-                        >
-                            ✌️ 2 Toques
-                        </button>
-                        {attackFilter && (
-                            <span className="complex-filter-info">
-                                {attackFilter === 'Ataque Contundente'
-                                    ? '🔴 Solo ataques de potencia'
-                                    : attackFilter === 'Ataque Coloque'
-                                    ? '🟣 Solo ataques de colocación'
-                                    : '🟡 Solo 2 Toques (pase directo)'}
-                            </span>
-                        )}
-                    </div>
+                    {/* Filtros */}
+                    <section className="rfilters">
+                        <div className="rfilters-head">
+                            <span><IconFilter size={14} /> Filtros{activeFilters > 0 && <b>{activeFilters}</b>}</span>
+                            <span className="rfilters-count">{filteredActions.length} acciones en el informe</span>
+                            {activeFilters > 0 && <button className="rf-clear" onClick={clearFilters}>Limpiar</button>}
+                        </div>
 
-                    {/* Filtros por detalle de scouting — solo dimensiones con datos en el partido */}
-                    {availableDetailDims.map(({ base, dim, options }) => (
-                        <div className="complex-filter-bar" key={`${base}-${dim.key}`}>
-                            <span className="complex-filter-label">{base} · {dim.label}:</span>
-                            <button
-                                className={!detailFilters[dim.key] ? 'complex-tab active' : 'complex-tab'}
-                                onClick={() => clearDetailFilter(dim.key)}
-                            >
-                                Todos
-                            </button>
-                            {options.map(opt => (
-                                <button
-                                    key={opt}
-                                    className={detailFilters[dim.key] === opt ? 'complex-tab active' : 'complex-tab'}
-                                    onClick={() => toggleDetailFilter(dim.key, opt)}
-                                    title={`Mostrar solo: ${base} — ${dim.label} = ${opt}`}
-                                >
-                                    {opt}
+                        <FilterRow label="Set">
+                            <button className={`rf-chip${selectedSet === null ? ' on' : ''}`} onClick={() => setSelectedSet(null)}>Todos</button>
+                            {selectedMatch.sets.map((st, i) => (
+                                <button key={i} className={`rf-chip${selectedSet === i ? ' on' : ''}`} onClick={() => setSelectedSet(selectedSet === i ? null : i)}>
+                                    Set {i + 1} <small>{st.own}–{st.opponent}</small>
                                 </button>
                             ))}
-                        </div>
-                    ))}
+                        </FilterRow>
+
+                        <FilterRow label="Jugador">
+                            <button className={`rf-chip${playerFilter === null ? ' on' : ''}`} onClick={() => setPlayerFilter(null)}>Todos</button>
+                            {allPlayers.map(pl => (
+                                <button key={pl.id} className={`rf-chip${playerFilter === pl.id ? ' on' : ''}`} style={{ '--chip': playerColors[pl.id] }}
+                                    onClick={() => setPlayerFilter(playerFilter === pl.id ? null : pl.id)}>
+                                    <i className="rf-dot" /> {pl.name}
+                                </button>
+                            ))}
+                        </FilterRow>
+
+                        {selectedMatch.matchType !== 'scouting' && (
+                            <FilterRow label="Complejo">
+                                <button className={`rf-chip${complexFilter === null ? ' on' : ''}`} onClick={() => setComplexFilter(null)}>Todos</button>
+                                <button className={`rf-chip${complexFilter === 'K1' ? ' on' : ''}`} style={{ '--chip': '#3b82f6' }}
+                                    onClick={() => setComplexFilter(complexFilter === 'K1' ? null : 'K1')} title="K1: Recepción → Armado → Ataque">
+                                    K1 · Recepción
+                                </button>
+                                <button className={`rf-chip${complexFilter === 'K2' ? ' on' : ''}`} style={{ '--chip': '#a855f7' }}
+                                    onClick={() => setComplexFilter(complexFilter === 'K2' ? null : 'K2')} title="K2: Saque → Defensa → Armado → Ataque">
+                                    K2 · Transición
+                                </button>
+                            </FilterRow>
+                        )}
+
+                        <FilterRow label="Tipo de ataque">
+                            <button className={`rf-chip${attackFilter === null ? ' on' : ''}`} onClick={() => setAttackFilter(null)}>Todos</button>
+                            {ATTACKS.map(at => (
+                                <button key={at.key} className={`rf-chip${attackFilter === at.key ? ' on' : ''}`} style={{ '--chip': at.color }}
+                                    onClick={() => setAttackFilter(attackFilter === at.key ? null : at.key)}>
+                                    <i className="rf-dot" /> {at.label}
+                                </button>
+                            ))}
+                        </FilterRow>
+
+                        {/* Detalles de scouting — solo dimensiones con datos en el partido */}
+                        {availableDetailDims.map(({ base, dim, options }) => (
+                            <FilterRow key={`${base}-${dim.key}`} label={`${base} · ${dim.label}`}>
+                                <button className={`rf-chip${!detailFilters[dim.key] ? ' on' : ''}`} onClick={() => clearDetailFilter(dim.key)}>Todos</button>
+                                {options.map(opt => (
+                                    <button key={opt} className={`rf-chip${detailFilters[dim.key] === opt ? ' on' : ''}`}
+                                        onClick={() => toggleDetailFilter(dim.key, opt)} title={`Mostrar solo: ${base} — ${dim.label} = ${opt}`}>
+                                        {opt}
+                                    </button>
+                                ))}
+                            </FilterRow>
+                        ))}
+                    </section>
+
+                    {/* Acceso rápido a cada jugador del informe */}
+                    {reportPlayers.length > 1 && (
+                        <nav className="rjump" aria-label="Ir a un jugador">
+                            <span>Ir a</span>
+                            {reportPlayers.map(id => (
+                                <button key={id} className="rf-chip" style={{ '--chip': playerColors[id] }} onClick={() => jumpTo(id)}>
+                                    <i className="rf-dot" /> {stats[id].name}
+                                    <small>{Object.values(stats[id].skills).reduce((n, sk) => n + sk.total, 0)}</small>
+                                </button>
+                            ))}
+                        </nav>
+                    )}
 
                     <div ref={reportContentRef} className="pdf-container">
                         {/* Header */}
@@ -690,8 +694,8 @@ function ReportViewer({ onGoToTracker, isPaid = false, matchId = null }) {
                         {Object.keys(stats)
                             .filter(playerId => Object.values(stats[playerId].skills).some(s => s.total > 0))
                             .map(playerId => (
+                                <div key={playerId} id={`jugador-${playerId}`} className="player-anchor">
                                 <PlayerReport
-                                    key={playerId}
                                     playerName={stats[playerId].name}
                                     playerStats={stats[playerId]}
                                     playerColor={playerColors[playerId]}
@@ -700,6 +704,7 @@ function ReportViewer({ onGoToTracker, isPaid = false, matchId = null }) {
                                     allSetActions={filteredActions}
                                     onOpenClips={openClips}
                                 />
+                                </div>
                             ))
                         }
                     </div>
