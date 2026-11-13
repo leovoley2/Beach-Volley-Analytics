@@ -6,6 +6,7 @@ import { SKILLS, OUTCOMES, ATTACK_TYPES, buildMatchState, computeSetScores, comp
 import { baseSkillOf } from '../lib/scoutingDetails';
 import ClipExportDialog from './ClipExportDialog';
 import { clipBounds, filterClips, matchesFilters, hasVideoTime, totalDuration, fmtTime } from '../lib/videoClips';
+import { openVideoSource, prefersChunks, chunksSupported, ensureChunkWorker } from '../lib/localVideo';
 
 // Scouting en video (PRO): el entrenador abre el video del partido desde su computadora,
 // registra las acciones mientras lo mira y después filtra por atleta / fundamento / resultado
@@ -36,7 +37,7 @@ const videoNameKey = (matchId) => `bva:video:${matchId}`;
 
 // Video abierto por partido durante la sesión: así se puede ir a Tendencias y volver (o abrir
 // clips desde ahí) sin elegir el archivo otra vez. El blob apunta al archivo local, no lo copia.
-const videoCache = new Map(); // matchId → { url, name, file }
+const videoCache = new Map(); // matchId → { url, name, file, mode, release }
 
 // Si el video se queda "Cargando…" más de este tiempo, se considera trabado.
 const STALL_MS = 6000;
@@ -185,20 +186,30 @@ function VideoScoutWorkspace({ matchId }) {
     const setScore = derivedSets[setIdx] || { own: 0, opponent: 0 };
 
     // ---------------------------------------------------------------- video
+    // Abre el archivo en modo directo (blob:) o "por partes" (ver lib/localVideo.js) y lo deja
+    // como fuente del reproductor. Cierra la fuente anterior de este partido.
+    const openSeq = useRef(0);
+    const setSource = async (file, wantChunks) => {
+        const seq = ++openSeq.current;
+        const src = await openVideoSource(file, () => document.querySelector('.vs-stage video'), wantChunks);
+        if (seq !== openSeq.current) { src.release(); return; } // se eligió otro archivo mientras tanto
+        videoCache.get(matchId)?.release?.();
+        videoCache.set(matchId, { url: src.url, name: file.name, file, mode: src.mode, release: src.release });
+        setVideoUrl(src.url);
+    };
+    // Tener listo el service worker antes de que haga falta.
+    useEffect(() => { ensureChunkWorker(); }, []);
+
     const loadFile = (file) => {
         if (!file) return;
         if (!file.type.startsWith('video/') && !/\.(mp4|mov|m4v|webm|mkv)$/i.test(file.name)) {
             showFlash('Ese archivo no parece un video (MP4, MOV o WebM).');
             return;
         }
-        const prev = videoCache.get(matchId);
-        if (prev) URL.revokeObjectURL(prev.url);
-        const url = URL.createObjectURL(file);
-        videoCache.set(matchId, { url, name: file.name, file });
         clearTimeout(stallTimer.current);
         pendingSeek.current = null;
         setBuffering(false);
-        setVideoUrl(url);
+        setSource(file, prefersChunks(file));
         setVideoError(null);
         setVideoName(file.name);
         setSavedName(file.name);
@@ -247,7 +258,7 @@ function VideoScoutWorkspace({ matchId }) {
             const probe = file ? await probeFile(file, el.duration ? mark / el.duration : 0) : null;
             if (el.paused || Math.abs(el.currentTime - mark) > 0.3) return;
             setVideoError({
-                stall: true, code: 0, at: mark, probe, size: file?.size || 0,
+                stall: true, code: 0, at: mark, probe, size: file?.size || 0, mode: videoCache.get(matchId)?.mode,
                 state: `r${el.readyState} n${el.networkState}`,
             });
         }, STALL_MS);
@@ -265,10 +276,8 @@ function VideoScoutWorkspace({ matchId }) {
         setBuffering(false);
         const cached = videoCache.get(matchId);
         if (cached?.file) {
-            URL.revokeObjectURL(cached.url);
-            const url = URL.createObjectURL(cached.file);
-            videoCache.set(matchId, { ...cached, url });
-            setVideoUrl(url);
+            // Si se trabó en modo directo, reabrir "por partes" (es lo que falla en iPad con videos pesados).
+            setSource(cached.file, cached.mode === 'partes' || (videoError.stall && chunksSupported()));
         } else {
             el.load();
         }
@@ -566,7 +575,9 @@ function VideoScoutWorkspace({ matchId }) {
                                         videoError.probe && !videoError.probe.readable ? (
                                             <p><strong>Este equipo no puede leer el archivo completo.</strong> Suele pasar cuando el video no está entero en el dispositivo: falta espacio libre, está en iCloud o en una memoria / tarjeta externa.</p>
                                         ) : (
-                                            <p>El archivo se lee bien, pero el reproductor dejó de avanzar. Suele pasar con videos muy pesados para la memoria del equipo.</p>
+                                            videoError.mode === 'directo' && chunksSupported()
+                                                ? <p>El archivo se lee bien, pero el reproductor no pudo con un video tan pesado. <strong>Reintentar</strong> lo vuelve a abrir en un modo más liviano, que le entrega el video por partes.</p>
+                                                : <p>El archivo se lee bien, pero el reproductor dejó de avanzar. Suele pasar con videos muy pesados para la memoria del equipo.</p>
                                         )
                                     ) : (
                                         <p>{VIDEO_ERROR_TEXT[videoError.code] || VIDEO_ERROR_TEXT[0]}</p>
@@ -591,6 +602,7 @@ function VideoScoutWorkspace({ matchId }) {
                                         {videoError.code ? ` · error ${videoError.code}` : ''}
                                         {videoError.probe ? ` · lectura: inicio ${videoError.probe.inicio}, punto ${videoError.probe.punto}, final ${videoError.probe.fin}` : ''}
                                         {videoError.state ? ` · ${videoError.state}` : ''}
+                                        {videoError.mode ? ` · modo ${videoError.mode}` : ''}
                                     </p>
                                 </div>
                             )}

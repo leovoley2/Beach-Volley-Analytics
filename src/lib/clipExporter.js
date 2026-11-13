@@ -3,6 +3,8 @@
 // canvas + audio con MediaRecorder. Es en tiempo real: exportar 1 min de clips tarda ~1 min.
 // Portado de Beach Scout (js/exporter.js).
 
+import { attachPlayer } from './localVideo';
+
 const TYPES = [
     ['video/mp4;codecs=avc1.42E01F,mp4a.40.2', 'mp4'],
     ['video/mp4;codecs=avc1,mp4a.40.2', 'mp4'],
@@ -77,6 +79,7 @@ export async function exportClips(opts) {
     if (!type) throw new Error('Este navegador no puede grabar video (usa Chrome o Safari actualizados).');
 
     const v = document.createElement('video');
+    const detach = attachPlayer(opts.src, v); // video abierto "por partes": seguir el ritmo de este reproductor
     v.src = opts.src; v.preload = 'auto'; v.playsInline = true;
     if (v.readyState < 1) await once(v, 'loadedmetadata');
     const k = Math.min(1, (opts.maxHeight || 720) / v.videoHeight);
@@ -164,6 +167,7 @@ export async function exportClips(opts) {
         await stopped;
     } finally {
         document.removeEventListener('visibilitychange', onVis);
+        detach();
         v.pause(); v.removeAttribute('src'); v.load();
         stream.getTracks().forEach(t => t.stop());
         ac?.close().catch(() => {});

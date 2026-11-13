@@ -9,6 +9,14 @@ Cada subida a producción lleva un número de versión (`MAYOR.MENOR.PARCHE`):
 La versión en producción se ve en el menú de cuenta (abajo), en el pie de la página de inicio
 y en https://beachvolleyanalytics.com/version.json.
 
+## 1.4.0 — Video pesado en iPad
+
+- Los videos pesados se reproducen **por partes**: la app le entrega el archivo al reproductor en
+  trozos pequeños y al ritmo de la reproducción, en vez de entero. En iPad / iPhone se usa
+  automáticamente con videos de más de 300 MB (antes se quedaban en «Cargando…»).
+- Si un video se traba en modo directo, **Reintentar** lo vuelve a abrir por partes.
+- El video sigue sin subirse a internet.
+
 ## 1.3.0 — Video: corregir tiempos y diagnóstico de bloqueos
 
 - Botón **⏱** en cada acción del video para corregir su momento: −1 s, −0.5, +0.5, +1 s o
