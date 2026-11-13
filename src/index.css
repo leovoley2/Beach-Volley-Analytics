@@ -2895,6 +2895,7 @@ input[type="text"]:focus, select:focus, .form-input:focus {
 .vs-error-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; }
 .vs-error-actions button { padding: 0.45rem 0.8rem; font-size: 0.82rem; }
 .vs-error .vs-error-tip { font-size: 0.78rem; }
+.vs-error .vs-error-diag { font-size: 0.7rem; color: var(--text-muted); font-variant-numeric: tabular-nums; user-select: all; }
 
 .vs-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; justify-content: space-between; }
 .vs-tool-group { display: flex; gap: 0.25rem; }
@@ -2997,7 +2998,16 @@ input[type="text"]:focus, select:focus, .form-input:focus {
 .vs-sym--dn { background: var(--c-dn); }
 
 .vs-list { list-style: none; display: flex; flex-direction: column; gap: 0.2rem; }
-.vs-row { display: flex; align-items: stretch; gap: 0.2rem; }
+.vs-row { display: flex; flex-direction: column; }
+.vs-row-line { display: flex; align-items: stretch; gap: 0.2rem; }
+.vs-row-edit { padding: 0 0.5rem; background: transparent; border-color: transparent; color: var(--text-muted); font-size: 0.9rem; }
+.vs-row-edit.active, .vs-row-edit:hover:not(:disabled) { color: var(--accent); background: var(--accent-dim); border-color: transparent; }
+.vs-row.is-editing { background: var(--bg-input); border-radius: var(--radius); }
+.vs-retime { display: flex; flex-wrap: wrap; gap: 0.3rem; padding: 0.3rem 0.5rem 0.5rem; }
+.vs-retime button { flex: 1 1 auto; padding: 0.45rem 0.5rem; font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+.vs-retime .vs-retime-here { flex-basis: 100%; color: var(--accent); border-color: var(--accent); }
+.vs-lead { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.78rem; color: var(--text-secondary); }
+.vs-lead select { padding: 0.3rem 0.4rem; font-size: 0.78rem; }
 .vs-row-main {
     flex: 1; min-width: 0;
     display: grid; grid-template-columns: 3.4rem minmax(0, 0.9fr) minmax(0, 1.2fr) auto auto;

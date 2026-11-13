@@ -27,11 +27,41 @@ const EMPTY_SEL = { playerId: null, skill: null, attackType: null, time: null, o
 const SVG_W = 500, SVG_H = 300, PAD_X = 50, PAD_Y = 50;
 const PAUSE_KEY = 'bva:video:pausarCancha';
 const readPausePref = () => { try { return localStorage.getItem(PAUSE_KEY) !== '0'; } catch { return true; } };
+// Anticipo: segundos que se restan al momento marcado (uno toca al jugador después de ver la acción).
+const LEAD_KEY = 'bva:video:anticipo';
+const LEADS = [0, 0.5, 1, 1.5, 2, 3];
+const readLead = () => { try { const n = Number(localStorage.getItem(LEAD_KEY)); return LEADS.includes(n) ? n : 0; } catch { return 0; } };
+const rowKey = (a) => a.id || `${a.timestamp}-${a.videoTime}`;
 const videoNameKey = (matchId) => `bva:video:${matchId}`;
 
 // Video abierto por partido durante la sesión: así se puede ir a Tendencias y volver (o abrir
 // clips desde ahí) sin elegir el archivo otra vez. El blob apunta al archivo local, no lo copia.
-const videoCache = new Map(); // matchId → { url, name }
+const videoCache = new Map(); // matchId → { url, name, file }
+
+// Si el video se queda "Cargando…" más de este tiempo, se considera trabado.
+const STALL_MS = 6000;
+const fmtSize = (bytes) => (bytes >= 1073741824 ? `${(bytes / 1073741824).toFixed(1)} GB` : `${Math.max(1, Math.round(bytes / 1048576))} MB`);
+
+// ¿El dispositivo puede leer el archivo? Lee 256 KB en tres puntos (inicio, donde se trabó, final).
+// En iPad un archivo puede dejar de leerse a mitad: copia incompleta por falta de espacio,
+// archivo en iCloud o en una memoria externa.
+async function probeFile(file, fraction) {
+    const CHUNK = 262144;
+    const readAt = async (pos) => {
+        const start = Math.max(0, Math.min(Math.floor(pos), Math.max(0, file.size - CHUNK)));
+        try {
+            const buf = await Promise.race([
+                file.slice(start, start + CHUNK).arrayBuffer(),
+                new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000)),
+            ]);
+            return buf.byteLength > 0 ? 'ok' : 'vacío';
+        } catch (err) {
+            return err?.name === 'Error' ? err.message : (err?.name || 'error');
+        }
+    };
+    const [inicio, punto, fin] = [await readAt(0), await readAt(file.size * fraction), await readAt(file.size - CHUNK)];
+    return { inicio, punto, fin, readable: inicio === 'ok' && punto === 'ok' && fin === 'ok' };
+}
 
 // play() devuelve una promesa que se rechaza si el navegador bloquea la reproducción.
 const safePlay = (el) => { el?.play()?.catch(() => {}); };
@@ -95,6 +125,8 @@ function VideoScoutWorkspace({ matchId }) {
     // Error del reproductor (archivo ilegible o códec que el navegador no decodifica): { code, at }.
     const [videoError, setVideoError] = useState(null);
     const [buffering, setBuffering] = useState(false);
+    const stallTimer = useRef(null);
+    const pendingSeek = useRef(null); // tiempo al que volver cuando el video termine de recargar
 
     // Clips elegidos desde Tendencias (clic en un número): { ids: Set, label }.
     const [preset, setPreset] = useState(() => {
@@ -110,6 +142,12 @@ function VideoScoutWorkspace({ matchId }) {
     const [flash, setFlash] = useState(null);
     const [exporting, setExporting] = useState(false);
     const [pauseOnCourt, setPauseOnCourt] = useState(readPausePref);
+    const [lead, setLead] = useState(readLead);
+    const changeLead = (n) => {
+        setLead(n);
+        try { localStorage.setItem(LEAD_KEY, String(n)); } catch { /* sin almacenamiento */ }
+    };
+    const [editingKey, setEditingKey] = useState(null); // acción con el ajuste de tiempo abierto
     const togglePauseOnCourt = (on) => {
         setPauseOnCourt(on);
         try { localStorage.setItem(PAUSE_KEY, on ? '1' : '0'); } catch { /* sin almacenamiento */ }
@@ -156,7 +194,10 @@ function VideoScoutWorkspace({ matchId }) {
         const prev = videoCache.get(matchId);
         if (prev) URL.revokeObjectURL(prev.url);
         const url = URL.createObjectURL(file);
-        videoCache.set(matchId, { url, name: file.name });
+        videoCache.set(matchId, { url, name: file.name, file });
+        clearTimeout(stallTimer.current);
+        pendingSeek.current = null;
+        setBuffering(false);
         setVideoUrl(url);
         setVideoError(null);
         setVideoName(file.name);
@@ -188,20 +229,58 @@ function VideoScoutWorkspace({ matchId }) {
     // saltar el fragmento dañado.
     const onVideoError = (e) => {
         const el = e.currentTarget;
+        clearTimeout(stallTimer.current);
         setBuffering(false);
         setVideoError({ code: el.error?.code || 0, at: el.currentTime || 0 });
     };
+
+    // "Cargando…" que no termina: el reproductor espera datos que no llegan y no avisa con un error
+    // (pasa en iPad). Se comprueba si el archivo se puede leer y se muestra qué hacer.
+    const onWaiting = (e) => {
+        const el = e.currentTarget;
+        setBuffering(true);
+        clearTimeout(stallTimer.current);
+        const mark = el.currentTime;
+        stallTimer.current = setTimeout(async () => {
+            if (el.paused || el.error || Math.abs(el.currentTime - mark) > 0.3) return;
+            const file = videoCache.get(matchId)?.file;
+            const probe = file ? await probeFile(file, el.duration ? mark / el.duration : 0) : null;
+            if (el.paused || Math.abs(el.currentTime - mark) > 0.3) return;
+            setVideoError({
+                stall: true, code: 0, at: mark, probe, size: file?.size || 0,
+                state: `r${el.readyState} n${el.networkState}`,
+            });
+        }, STALL_MS);
+    };
+    const clearWaiting = () => { clearTimeout(stallTimer.current); setBuffering(false); };
+    useEffect(() => () => clearTimeout(stallTimer.current), []);
+
+    // Recargar el video y seguir un poco más adelante. Se vuelve a abrir el archivo (URL nueva):
+    // con solo recargar, un reproductor trabado en iPad puede seguir sin responder.
     const recoverVideo = (skip = 0.5) => {
         const el = v();
         if (!el || !videoError) return;
-        const at = videoError.at + skip;
+        pendingSeek.current = Math.max(0, videoError.at + skip);
         setVideoError(null);
-        el.addEventListener('loadedmetadata', () => {
-            el.playbackRate = speed;
-            el.currentTime = Math.min(at, el.duration || at);
+        setBuffering(false);
+        const cached = videoCache.get(matchId);
+        if (cached?.file) {
+            URL.revokeObjectURL(cached.url);
+            const url = URL.createObjectURL(cached.file);
+            videoCache.set(matchId, { ...cached, url });
+            setVideoUrl(url);
+        } else {
+            el.load();
+        }
+    };
+    const onLoadedMetadata = (e) => {
+        const el = e.currentTarget;
+        el.playbackRate = speed;
+        if (pendingSeek.current != null) {
+            el.currentTime = Math.min(pendingSeek.current, el.duration || pendingSeek.current);
+            pendingSeek.current = null;
             safePlay(el);
-        }, { once: true });
-        el.load();
+        }
     };
 
     // -------------------------------------------------------------- clips
@@ -280,7 +359,7 @@ function VideoScoutWorkspace({ matchId }) {
 
     const selectPlayer = (playerId) => {
         // El momento de la acción se toma al elegir al jugador (el video puede seguir corriendo).
-        const time = sel.playerId && sel.time != null ? sel.time : (v()?.currentTime ?? 0);
+        const time = sel.playerId && sel.time != null ? sel.time : Math.max(0, (v()?.currentTime ?? 0) - lead);
         setSel({ ...EMPTY_SEL, playerId, time });
         setTab('registrar');
     };
@@ -347,6 +426,22 @@ function VideoScoutWorkspace({ matchId }) {
 
     const deleteAction = (target) => {
         updateMatch(buildMatchState(currentMatch, actions.filter(a => a !== target), currentMatch.sets.length));
+    };
+
+    // Corregir el momento de una acción ya registrada: mover ±segundos o fijarlo en el punto
+    // actual del video. Después se reproduce el clip para comprobar cómo quedó.
+    const retime = (target, { delta = 0, at = null }) => {
+        const el = v();
+        const max = el?.duration || Infinity;
+        const raw = at != null ? at : target.videoTime + delta;
+        const videoTime = Math.round(Math.max(0, Math.min(raw, max)) * 100) / 100;
+        if (videoTime === target.videoTime) return;
+        const updated = { ...target, videoTime };
+        setNowPlaying(null);
+        setEditingKey(rowKey(updated));
+        updateMatch(buildMatchState(currentMatch, actions.map(a => (a === target ? updated : a)), currentMatch.sets.length));
+        showFlash(`⏱ ${fmtTime(videoTime)}`);
+        if (el) { seek(clipBounds(updated).start); safePlay(el); }
     };
 
     const jumpTo = (a) => { setNowPlaying(null); seek(clipBounds(a).start); safePlay(v()); };
@@ -447,11 +542,12 @@ function VideoScoutWorkspace({ matchId }) {
                                 src={videoUrl}
                                 controls
                                 playsInline
-                                onLoadedMetadata={e => { e.currentTarget.playbackRate = speed; }}
+                                onLoadedMetadata={onLoadedMetadata}
                                 onError={onVideoError}
-                                onWaiting={() => setBuffering(true)}
-                                onPlaying={() => setBuffering(false)}
-                                onSeeked={() => setBuffering(false)}
+                                onWaiting={onWaiting}
+                                onPlaying={clearWaiting}
+                                onCanPlay={clearWaiting}
+                                onPause={clearWaiting}
                             />
                             {buffering && !videoError && <div className="vs-buffering">Cargando…</div>}
                             {stage === 'court' && sel.resumeAfter && !videoError && (
@@ -465,15 +561,37 @@ function VideoScoutWorkspace({ matchId }) {
                             )}
                             {videoError && (
                                 <div className="vs-error" role="alert">
-                                    <strong>El video se detuvo en {fmtTime(videoError.at, false)}</strong>
-                                    <p className="vs-error-tip">{videoName}{videoError.code ? ` · error ${videoError.code}` : ''}</p>
-                                    <p>{VIDEO_ERROR_TEXT[videoError.code] || VIDEO_ERROR_TEXT[0]}</p>
+                                    <strong>El video se {videoError.stall ? 'trabó' : 'detuvo'} en {fmtTime(videoError.at, false)}</strong>
+                                    {videoError.stall ? (
+                                        videoError.probe && !videoError.probe.readable ? (
+                                            <p><strong>Este equipo no puede leer el archivo completo.</strong> Suele pasar cuando el video no está entero en el dispositivo: falta espacio libre, está en iCloud o en una memoria / tarjeta externa.</p>
+                                        ) : (
+                                            <p>El archivo se lee bien, pero el reproductor dejó de avanzar. Suele pasar con videos muy pesados para la memoria del equipo.</p>
+                                        )
+                                    ) : (
+                                        <p>{VIDEO_ERROR_TEXT[videoError.code] || VIDEO_ERROR_TEXT[0]}</p>
+                                    )}
                                     <div className="vs-error-actions">
-                                        <button className="btn-primary" onClick={() => recoverVideo(0.5)}>Reintentar desde aquí</button>
+                                        <button className="btn-primary" onClick={() => recoverVideo(videoError.stall ? 0 : 0.5)}>Reintentar desde aquí</button>
                                         <button className="btn-cancel" onClick={() => recoverVideo(5)}>Saltar 5 s</button>
                                         <button className="btn-cancel" onClick={() => fileInputRef.current?.click()}>Elegir otro archivo</button>
                                     </div>
-                                    <p className="vs-error-tip">Si se repite: convierte el video a <strong>MP4 (H.264)</strong> —por ejemplo con HandBrake, preset «Fast 1080p30»— y asegúrate de que el archivo esté descargado en tu equipo (no solo en iCloud o Google Drive).</p>
+                                    {videoError.stall ? (
+                                        <p className="vs-error-tip">
+                                            {videoError.probe && !videoError.probe.readable
+                                                ? <>En iPad: en la app <strong>Archivos</strong>, copia el video a <strong>«En mi iPad»</strong>, revisa que haya espacio libre (al menos el tamaño del video) y vuelve a elegirlo desde ahí.</>
+                                                : <>Cierra otras pestañas y apps y reintenta. Si se repite, usa una versión más liviana del video (MP4 H.264 a 720p).</>}
+                                        </p>
+                                    ) : (
+                                        <p className="vs-error-tip">Si se repite: convierte el video a <strong>MP4 (H.264)</strong> —por ejemplo con HandBrake, preset «Fast 1080p30»— y asegúrate de que el archivo esté descargado en tu equipo (no solo en iCloud o Google Drive).</p>
+                                    )}
+                                    <p className="vs-error-tip vs-error-diag">
+                                        {videoName}
+                                        {videoError.size ? ` · ${fmtSize(videoError.size)}` : ''}
+                                        {videoError.code ? ` · error ${videoError.code}` : ''}
+                                        {videoError.probe ? ` · lectura: inicio ${videoError.probe.inicio}, punto ${videoError.probe.punto}, final ${videoError.probe.fin}` : ''}
+                                        {videoError.state ? ` · ${videoError.state}` : ''}
+                                    </p>
                                 </div>
                             )}
                             {playingAction && (
@@ -519,6 +637,12 @@ function VideoScoutWorkspace({ matchId }) {
                                 <button key={s} className={speed === s ? 'active' : ''} onClick={() => changeSpeed(s)}>{s}×</button>
                             ))}
                         </div>
+                        <label className="vs-lead" title="Resta este tiempo al momento en que tocas al jugador, para compensar la reacción">
+                            Anticipo
+                            <select value={lead} onChange={e => changeLead(Number(e.target.value))}>
+                                {LEADS.map(n => <option key={n} value={n}>{n === 0 ? 'sin' : `−${n} s`}</option>)}
+                            </select>
+                        </label>
                         <button className="vs-change" onClick={() => fileInputRef.current?.click()} title={videoName}>Cambiar video</button>
                     </div>
                 )}
@@ -642,7 +766,17 @@ function VideoScoutWorkspace({ matchId }) {
                         ) : (
                             <ul className="vs-list">
                                 {videoActions.map(a => (
-                                    <ActionRow key={a.id || `${a.timestamp}-${a.videoTime}`} action={a} player={playerById[a.playerId]} onClick={() => jumpTo(a)} onDelete={() => deleteAction(a)} />
+                                    <ActionRow
+                                        key={rowKey(a)}
+                                        action={a}
+                                        player={playerById[a.playerId]}
+                                        onClick={() => jumpTo(a)}
+                                        onDelete={() => deleteAction(a)}
+                                        editing={editingKey === rowKey(a)}
+                                        onToggleEdit={() => setEditingKey(k => (k === rowKey(a) ? null : rowKey(a)))}
+                                        onRetime={videoUrl ? (opts) => retime(a, opts) : null}
+                                        currentTime={() => v()?.currentTime ?? null}
+                                    />
                                 ))}
                             </ul>
                         )}
@@ -705,11 +839,15 @@ function VideoScoutWorkspace({ matchId }) {
                             <ul className="vs-list">
                                 {clips.map((a, i) => (
                                     <ActionRow
-                                        key={a.id || `${a.timestamp}-${a.videoTime}`}
+                                        key={rowKey(a)}
                                         action={a}
                                         player={playerById[a.playerId]}
                                         playing={playingAction === a}
                                         onClick={() => videoUrl && playClip(clips, i)}
+                                        editing={editingKey === rowKey(a)}
+                                        onToggleEdit={() => setEditingKey(k => (k === rowKey(a) ? null : rowKey(a)))}
+                                        onRetime={videoUrl ? (opts) => retime(a, opts) : null}
+                                        currentTime={() => v()?.currentTime ?? null}
                                     />
                                 ))}
                             </ul>
@@ -735,18 +873,32 @@ function VideoScoutWorkspace({ matchId }) {
     );
 }
 
-function ActionRow({ action, player, playing, onClick, onDelete }) {
+function ActionRow({ action, player, playing, onClick, onDelete, editing, onToggleEdit, onRetime, currentTime }) {
     const info = outcomeInfo(action.outcome);
     return (
-        <li className={`vs-row ${playing ? 'is-playing' : ''}`}>
-            <button className="vs-row-main" onClick={onClick}>
-                <span className="vs-time">{fmtTime(action.videoTime)}</span>
-                <span className={`vs-row-name vs-side-${player?.side}`}>{player?.name || '—'}</span>
-                <span className="vs-row-skill">{action.skill}{action.x != null && <span className="vs-row-court" title="Con trayectoria en la cancha"> ↗</span>}</span>
-                <span className={`vs-sym vs-sym--${OUTCOME_CLASS[action.outcome]}`} title={action.outcome}>{info?.symbol}</span>
-                <span className="vs-row-set">S{(action.setIndex ?? 0) + 1}</span>
-            </button>
-            {onDelete && <button className="vs-row-del" onClick={onDelete} aria-label="Eliminar acción" title="Eliminar">×</button>}
+        <li className={`vs-row ${playing ? 'is-playing' : ''} ${editing ? 'is-editing' : ''}`}>
+            <div className="vs-row-line">
+                <button className="vs-row-main" onClick={onClick}>
+                    <span className="vs-time">{fmtTime(action.videoTime)}</span>
+                    <span className={`vs-row-name vs-side-${player?.side}`}>{player?.name || '—'}</span>
+                    <span className="vs-row-skill">{action.skill}{action.x != null && <span className="vs-row-court" title="Con trayectoria en la cancha"> ↗</span>}</span>
+                    <span className={`vs-sym vs-sym--${OUTCOME_CLASS[action.outcome]}`} title={action.outcome}>{info?.symbol}</span>
+                    <span className="vs-row-set">S{(action.setIndex ?? 0) + 1}</span>
+                </button>
+                {onRetime && (
+                    <button className={`vs-row-edit ${editing ? 'active' : ''}`} onClick={onToggleEdit} aria-label="Ajustar tiempo" aria-expanded={!!editing} title="Ajustar tiempo">⏱</button>
+                )}
+                {onDelete && <button className="vs-row-del" onClick={onDelete} aria-label="Eliminar acción" title="Eliminar">×</button>}
+            </div>
+            {editing && onRetime && (
+                <div className="vs-retime" role="group" aria-label="Ajustar tiempo de la acción">
+                    <button onClick={() => onRetime({ delta: -1 })}>−1 s</button>
+                    <button onClick={() => onRetime({ delta: -0.5 })}>−0.5</button>
+                    <button onClick={() => onRetime({ delta: 0.5 })}>+0.5</button>
+                    <button onClick={() => onRetime({ delta: 1 })}>+1 s</button>
+                    <button className="vs-retime-here" onClick={() => { const t = currentTime(); if (t != null) onRetime({ at: t }); }} title="Usar el punto actual del video">Fijar aquí</button>
+                </div>
+            )}
         </li>
     );
 }

@@ -9,6 +9,15 @@ Cada subida a producción lleva un número de versión (`MAYOR.MENOR.PARCHE`):
 La versión en producción se ve en el menú de cuenta (abajo), en el pie de la página de inicio
 y en https://beachvolleyanalytics.com/version.json.
 
+## 1.3.0 — Video: corregir tiempos y diagnóstico de bloqueos
+
+- Botón **⏱** en cada acción del video para corregir su momento: −1 s, −0.5, +0.5, +1 s o
+  **Fijar aquí** (el punto actual del video). El clip se reproduce para comprobar el ajuste.
+- **Anticipo**: resta automáticamente 0.5–3 s al momento en que tocas al jugador, para que los
+  clips no salgan tarde.
+- Si el video se queda en «Cargando…», la app comprueba si el equipo puede leer el archivo,
+  explica la causa probable y **Reintentar** vuelve a abrir el archivo.
+
 ## 1.2.0 — Guardado sin conexión
 
 - Cada acción se guarda **primero en el equipo** y después en el servidor: si se cae la señal
